@@ -26,6 +26,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
   const [user, setUser] = useState(null);
   const isMobile = useIsMobile();
   const lastCoachKeyRef = React.useRef("");
+  const [photoSource, setPhotoSource] = useState("suggested"); // suggested | upload
 
   useEffect(() => {
     loadUser();
@@ -68,6 +69,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
     setActivePosition(position);
     setTempPhotoUrl("");
     setWizardDescription("");
+    setPhotoSource("suggested");
     if (position === 0) {
       setSelectedType(category.label);
       setWizardStep('photo');
@@ -90,6 +92,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
   const handleTypeSelect = (type) => {
     setSelectedType(type);
     setWizardStep('photo');
+    setPhotoSource("suggested");
     // Coach nudge right after the user picks a concept.
     const key = `nudge:${category?.id || ""}:${String(type || "").trim().toLowerCase()}`;
     const prompt = buildInterestNudgePrompt({
@@ -106,6 +109,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
+    setPhotoSource("upload");
     try {
       const { file_url } = await mc.integrations.Core.UploadFile({ file });
       setTempPhotoUrl(file_url);
@@ -119,6 +123,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
 
   const handleSelectSuggestion = (url) => {
     setTempPhotoUrl(url);
+    setPhotoSource("suggested");
     setWizardStep('description');
   };
 
@@ -180,6 +185,10 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
       } else {
         const isFirstEver = !currentUser.first_interest_added;
         coinsToAdd = isFirstEver ? 50 : 15;
+        // Small bonus for uploading a custom photo (vs picking a suggested one).
+        if (photoSource === "upload") {
+          coinsToAdd += 5;
+        }
         if (wizardDescription && wizardDescription.trim()) {
           coinsToAdd += 10;
         }
@@ -652,27 +661,73 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
                       {activePosition === 0 ? "Upload a central photo for this category" : "Upload a photo that reflects this"}
                     </p>
                   </div>
+                  <div className="flex items-center justify-center gap-2 p-1 rounded-xl bg-gray-100 dark:bg-gray-800">
+                    <button
+                      type="button"
+                      onClick={() => setPhotoSource("suggested")}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                        photoSource === "suggested" ? "bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm" : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      Suggested photos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPhotoSource("upload")}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                        photoSource === "upload" ? "bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm" : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      Upload my photo
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto p-1">
                     <input type="file" accept="image/*" onChange={handleWizardFileUpload} className="hidden" id="wizard-upload" disabled={uploading} />
-                    <label htmlFor="wizard-upload"
-                      className="aspect-square rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-purple-500 bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-purple-50 dark:hover:bg-purple-900/20 group relative overflow-hidden">
-                      {uploading ? (
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
-                      ) : (
-                        <>
-                          <Camera className="w-8 h-8 text-gray-400 group-hover:text-purple-500 mb-2 transition-colors" />
-                          <span className="text-xs font-medium text-gray-500 group-hover:text-purple-500 text-center px-2">Upload your own</span>
-                        </>
-                      )}
-                    </label>
-                    {getSuggestions().map((url, idx) => (
-                      <motion.button key={idx} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: idx * 0.05 }} onClick={() => handleSelectSuggestion(url)}
-                        className="aspect-square rounded-2xl overflow-hidden border-2 border-transparent hover:border-purple-500 hover:scale-[1.02] transition-all relative group">
-                        <img src={url} alt="suggestion" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-                      </motion.button>
-                    ))}
+                    {photoSource === "upload" ? (
+                      <label
+                        htmlFor="wizard-upload"
+                        className="col-span-2 md:col-span-3 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-purple-500 bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-purple-50 dark:hover:bg-purple-900/20 group relative overflow-hidden py-10"
+                      >
+                        {uploading ? (
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+                        ) : (
+                          <>
+                            <Camera className="w-10 h-10 text-gray-400 group-hover:text-purple-500 mb-2 transition-colors" />
+                            <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Upload your photo</span>
+                            <span className="text-xs text-gray-500 mt-1">Get +5 extra coins for custom photos</span>
+                          </>
+                        )}
+                      </label>
+                    ) : (
+                      <>
+                        {getSuggestions().map((url, idx) => (
+                          <motion.button
+                            key={idx}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.05 }}
+                            onClick={() => handleSelectSuggestion(url)}
+                            className="aspect-square rounded-2xl overflow-hidden border-2 border-transparent hover:border-purple-500 hover:scale-[1.02] transition-all relative group"
+                          >
+                            <img src={url} alt="suggestion" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                          </motion.button>
+                        ))}
+                        <label
+                          htmlFor="wizard-upload"
+                          className="aspect-square rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-purple-500 bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-purple-50 dark:hover:bg-purple-900/20 group relative overflow-hidden"
+                        >
+                          {uploading ? (
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+                          ) : (
+                            <>
+                              <Camera className="w-8 h-8 text-gray-400 group-hover:text-purple-500 mb-2 transition-colors" />
+                              <span className="text-xs font-medium text-gray-500 group-hover:text-purple-500 text-center px-2">Upload my photo (+5)</span>
+                            </>
+                          )}
+                        </label>
+                      </>
+                    )}
                   </div>
                   {activePosition !== 0 && (
                     <Button variant="ghost" onClick={() => setWizardStep('type')}>Back</Button>
