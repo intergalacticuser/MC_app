@@ -6,6 +6,7 @@ import { mc } from "@/api/mcClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createPageUrl } from "@/utils";
+import SpaceBackdrop from "@/components/SpaceBackdrop";
 
 function normalizeNextPath(next) {
   if (!next) return "/";
@@ -238,8 +239,9 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-950 px-4 py-10">
-      <div className="max-w-md mx-auto">
+    <div className="min-h-screen relative overflow-hidden px-4 py-10">
+      <SpaceBackdrop density="auth" />
+      <div className="relative z-10 max-w-md mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
