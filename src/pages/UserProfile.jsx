@@ -7,7 +7,7 @@ import { createPageUrl } from "@/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import MindMapView from "../components/profile/MindMapView";
-import CategoryViewer from "../components/profile/CategoryViewer";
+import CategoryViewer from "../components/profile/CategoryViewerV3";
 import SuperNovaButton from "../components/premium/SuperNovaButton";
 import { calculateMatchScore, CATEGORIES_LIST, MESSAGE_UNLOCK_THRESHOLD, buildMatchExplanation } from "@/components/utils/matchingUtils";
 import { syncUserProfile } from "@/components/utils/syncProfile";

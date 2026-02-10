@@ -143,3 +143,318 @@ export const IMAGE_SUGGESTIONS = {
     "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=400&q=80"
   ]
 };
+
+// Level 3 suggestions: concrete concepts inside each fixed Level 2 subcategory.
+// Keep these stable and curated (>= 10 each) so the UI feels intentional.
+export const CONCEPT_SUGGESTIONS = {
+  love_relationships: {
+    "Romantic Relationships": [
+      "Love languages",
+      "Date night ideas",
+      "Communication styles",
+      "Conflict resolution",
+      "Trust & reliability",
+      "Emotional safety",
+      "Long-term plans",
+      "Shared hobbies",
+      "Quality time",
+      "Affection"
+    ],
+    "Family": [
+      "Family traditions",
+      "Sibling relationships",
+      "Parent-child bond",
+      "Family gatherings",
+      "Chosen family",
+      "Supporting relatives",
+      "Intergenerational stories",
+      "Family values",
+      "Healthy communication",
+      "Home holidays"
+    ],
+    "Intimacy & Sex": [
+      "Consent",
+      "Affection",
+      "Flirting",
+      "Emotional intimacy",
+      "Physical compatibility",
+      "Boundaries",
+      "Desire & attraction",
+      "Safety & trust",
+      "Open conversations",
+      "Playfulness"
+    ],
+    "Emotional Connection": [
+      "Vulnerability",
+      "Active listening",
+      "Empathy",
+      "Shared memories",
+      "Inside jokes",
+      "Support in hard times",
+      "Feeling seen",
+      "Comfort & warmth",
+      "Deep talks",
+      "Kindness"
+    ],
+    "Boundaries & Expectations": [
+      "Personal space",
+      "Time together",
+      "Honesty",
+      "Jealousy rules",
+      "Financial expectations",
+      "Social boundaries",
+      "Communication frequency",
+      "Respect",
+      "Independence",
+      "Commitment"
+    ]
+  },
+  lifestyle_values: {
+    "Core Values": [
+      "Honesty",
+      "Kindness",
+      "Loyalty",
+      "Freedom",
+      "Responsibility",
+      "Curiosity",
+      "Compassion",
+      "Courage",
+      "Fairness",
+      "Authenticity"
+    ],
+    "Life Goals & Dreams": [
+      "Travel the world",
+      "Build a family",
+      "Move to a new city",
+      "Buy a home",
+      "Learn a new skill",
+      "Start a business",
+      "Write a book",
+      "Financial independence",
+      "Make an impact",
+      "Create a passion project"
+    ],
+    "Career & Ambitions": [
+      "Leadership",
+      "Creative work",
+      "Entrepreneurship",
+      "Remote work",
+      "Work-life balance",
+      "Learning & growth",
+      "Changing careers",
+      "Side projects",
+      "Networking",
+      "Professional mastery"
+    ],
+    "Personal Growth": [
+      "Mindfulness",
+      "Therapy",
+      "Journaling",
+      "Discipline",
+      "Confidence",
+      "Habits",
+      "Emotional intelligence",
+      "Self-care",
+      "Public speaking",
+      "Learning every day"
+    ],
+    "Life Philosophy": [
+      "Stoicism",
+      "Optimism",
+      "Minimalism",
+      "Spirituality",
+      "Pragmatism",
+      "Gratitude",
+      "Simplicity",
+      "Living intentionally",
+      "Balance",
+      "Growth mindset"
+    ]
+  },
+  cultural_taste: {
+    "Music": [
+      "Indie",
+      "Hip-hop",
+      "Pop",
+      "Jazz",
+      "Classical",
+      "Electronic",
+      "Rock",
+      "R&B",
+      "Live concerts",
+      "Playlists"
+    ],
+    "Movies & Series": [
+      "Sci-fi",
+      "Comedy",
+      "Drama",
+      "Thrillers",
+      "Documentaries",
+      "Anime",
+      "Rom-coms",
+      "Crime series",
+      "Classic films",
+      "Movie nights"
+    ],
+    "Books": [
+      "Fantasy",
+      "Mystery",
+      "Non-fiction",
+      "Psychology",
+      "Business",
+      "Romance",
+      "Sci-fi novels",
+      "Biographies",
+      "Poetry",
+      "Book clubs"
+    ],
+    "Art & Creativity": [
+      "Drawing",
+      "Painting",
+      "Photography",
+      "Design",
+      "Street art",
+      "Museums",
+      "Creative writing",
+      "Crafts",
+      "Digital art",
+      "Fashion"
+    ],
+    "Podcasts & Media": [
+      "Tech podcasts",
+      "Self-improvement",
+      "True crime",
+      "Comedy podcasts",
+      "Science shows",
+      "News analysis",
+      "History",
+      "Business media",
+      "YouTube channels",
+      "Audiobooks"
+    ]
+  },
+  hobbies_activities: {
+    "Sports & Fitness": [
+      "Gym training",
+      "Running",
+      "Yoga",
+      "Cycling",
+      "Swimming",
+      "Martial arts",
+      "Team sports",
+      "Hiking workouts",
+      "Pilates",
+      "Strength training"
+    ],
+    "Outdoor & Nature": [
+      "Hiking",
+      "Camping",
+      "Beach days",
+      "Mountains",
+      "Sunsets",
+      "Road trips",
+      "National parks",
+      "Stargazing",
+      "Picnics",
+      "Gardening"
+    ],
+    "Creative Hobbies": [
+      "Photography",
+      "Cooking experiments",
+      "Music instruments",
+      "DIY projects",
+      "Drawing",
+      "Writing",
+      "Video editing",
+      "Crafting",
+      "3D printing",
+      "Painting"
+    ],
+    "Social Activities": [
+      "Board games",
+      "Parties",
+      "Karaoke",
+      "Volunteering",
+      "Meetups",
+      "Dancing",
+      "Trivia nights",
+      "Group workouts",
+      "Workshops",
+      "Community events"
+    ],
+    "Travel & Adventures": [
+      "Backpacking",
+      "City breaks",
+      "Beach vacations",
+      "Mountains trips",
+      "Weekend getaways",
+      "New cuisines",
+      "Cultural festivals",
+      "Extreme sports",
+      "Photography trips",
+      "Hidden gems"
+    ]
+  },
+  food_everyday_life: {
+    "Food Preferences": [
+      "Vegetarian",
+      "Vegan",
+      "Street food",
+      "Spicy food",
+      "Desserts",
+      "Seafood",
+      "Healthy eating",
+      "Comfort food",
+      "Coffee lover",
+      "Tea lover"
+    ],
+    "Cooking & Home Food": [
+      "Baking",
+      "Meal prep",
+      "Pasta nights",
+      "BBQ",
+      "Homemade soups",
+      "Trying new recipes",
+      "Cooking for friends",
+      "Slow cooking",
+      "Healthy cooking",
+      "Dessert experiments"
+    ],
+    "Cafes & Restaurants": [
+      "Coffee shops",
+      "Brunch",
+      "Fine dining",
+      "Local spots",
+      "Sushi",
+      "Pizza places",
+      "Taco joints",
+      "Bakeries",
+      "Food markets",
+      "Date restaurants"
+    ],
+    "Daily Rituals": [
+      "Morning coffee",
+      "Evening walks",
+      "Reading before bed",
+      "Meditation",
+      "Workout routine",
+      "Weekly planning",
+      "Music while working",
+      "Tea time",
+      "Digital detox",
+      "Skincare routine"
+    ],
+    "Home & Comfort": [
+      "Cozy lighting",
+      "Home decor",
+      "Clean space",
+      "Scented candles",
+      "Soft blankets",
+      "Minimalism at home",
+      "Plants",
+      "Movie nights",
+      "Comfort playlists",
+      "Cooking at home"
+    ]
+  }
+};

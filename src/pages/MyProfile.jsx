@@ -5,7 +5,7 @@ import { Edit3, ImageIcon, Share2, Palette } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import MindMapView from "../components/profile/MindMapView";
 import ProfileEditor from "../components/profile/ProfileEditor";
-import CategoryEditor from "../components/profile/CategoryEditor";
+import CategoryEditor from "../components/profile/CategoryEditorV3";
 
 import BackgroundSelector from "../components/profile/BackgroundSelector";
 import ShareUniverse from "../components/share/ShareUniverse";
