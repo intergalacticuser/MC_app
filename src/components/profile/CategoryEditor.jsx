@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { CATEGORY_SUGGESTIONS as FIXED_SUBCATEGORIES, IMAGE_SUGGESTIONS as FIXED_IMAGE_SUGGESTIONS } from "./categorySuggestionsData";
 import { cosmicCoachToast } from "@/components/assistant/cosmicCoachToast";
 import { buildInterestNudgePrompt, buildInterestReflectionPrompt } from "@/lib/cosmicCoach";
+import { isCoachDismissed } from "@/lib/coachDismissals";
 
 export default function CategoryEditor({ category, interests, userId, onClose, onSave, isFirstInterest = false }) {
   const [uploading, setUploading] = useState(false);
@@ -49,6 +50,8 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
     if (!safeKey || !prompt) return;
     if (lastCoachKeyRef.current === safeKey) return;
     lastCoachKeyRef.current = safeKey;
+    const coachUserId = user?.id || userId || "";
+    if (coachUserId && isCoachDismissed(coachUserId, safeKey)) return;
     try {
       const res = await mc.integrations.Core.InvokeLLM({
         prompt,
@@ -58,7 +61,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
         }
       });
       if (typeof res === "string" && res.trim()) {
-        cosmicCoachToast({ title: "MindCircle", text: res.trim() });
+        cosmicCoachToast({ title: "MindCircle", text: res.trim(), coach_user_id: coachUserId, coach_dismiss_key: safeKey });
       }
     } catch {
       // Coach should never block the core UX.

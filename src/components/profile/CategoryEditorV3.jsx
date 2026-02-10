@@ -11,6 +11,7 @@ import CoinRewardPopup from "@/components/rewards/CoinRewardPopup";
 import { CATEGORY_SUGGESTIONS as FIXED_SUBCATEGORIES, IMAGE_SUGGESTIONS as FIXED_IMAGE_SUGGESTIONS, CONCEPT_SUGGESTIONS } from "./categorySuggestionsData";
 import { cosmicCoachToast } from "@/components/assistant/cosmicCoachToast";
 import { buildInterestNudgePrompt, buildInterestReflectionPrompt } from "@/lib/cosmicCoach";
+import { isCoachDismissed } from "@/lib/coachDismissals";
 
 function toSafeText(value) {
   return String(value || "").trim();
@@ -79,13 +80,15 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
     if (!safeKey || !prompt) return;
     if (lastCoachKeyRef.current === safeKey) return;
     lastCoachKeyRef.current = safeKey;
+    const coachUserId = user?.id || userId || "";
+    if (coachUserId && isCoachDismissed(coachUserId, safeKey)) return;
     try {
       const res = await mc.integrations.Core.InvokeLLM({
         prompt,
         options: { temperature: 0.9, top_p: 0.9 }
       });
       if (typeof res === "string" && res.trim()) {
-        cosmicCoachToast({ title: "MindCircle", text: res.trim() });
+        cosmicCoachToast({ title: "MindCircle", text: res.trim(), coach_user_id: coachUserId, coach_dismiss_key: safeKey });
       }
     } catch {
       // ignore
@@ -731,4 +734,3 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
     </>
   );
 }
-
