@@ -1,8 +1,18 @@
 import React from "react";
 import { toast } from "@/components/ui/use-toast";
 
+function cleanCoachText(value) {
+  let text = String(value || "").trim();
+  if (!text) return "";
+  // Strip wrapping quotes some models add despite instructions.
+  text = text.replace(/^[\s"'“”]+/, "").replace(/[\s"'“”]+$/, "").trim();
+  // Collapse whitespace.
+  text = text.replace(/\s+/g, " ").trim();
+  return text;
+}
+
 export function cosmicCoachToast({ title = "MindCircle", text = "", ms = 12000 } = {}) {
-  const safeText = String(text || "").trim();
+  const safeText = cleanCoachText(text);
   if (!safeText) return;
 
   const t = toast({
@@ -23,4 +33,3 @@ export function cosmicCoachToast({ title = "MindCircle", text = "", ms = 12000 }
     }, ms);
   }
 }
-

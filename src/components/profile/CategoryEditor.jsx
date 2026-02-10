@@ -49,7 +49,13 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
     if (lastCoachKeyRef.current === safeKey) return;
     lastCoachKeyRef.current = safeKey;
     try {
-      const res = await mc.integrations.Core.InvokeLLM({ prompt });
+      const res = await mc.integrations.Core.InvokeLLM({
+        prompt,
+        options: {
+          temperature: 0.9,
+          top_p: 0.9
+        }
+      });
       if (typeof res === "string" && res.trim()) {
         cosmicCoachToast({ title: "MindCircle", text: res.trim() });
       }
