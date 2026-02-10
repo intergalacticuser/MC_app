@@ -81,8 +81,11 @@ function sharedLocalDbPlugin() {
 }
 
 // https://vite.dev/config/
+const appBase = process.env.VITE_BASE_PATH || "/";
+
 export default defineConfig({
   logLevel: 'error', // Suppress warnings, only show errors
+  base: appBase,
   plugins: [react(), sharedLocalDbPlugin()],
   server: {
     allowedHosts: [".ngrok-free.app", ".ngrok.app"]

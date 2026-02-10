@@ -29,6 +29,21 @@ No `.env` setup is required for the local mode.
 - Build verification:
   `npm run build`
 
+## GitHub Pages
+
+This repo is preconfigured for Pages deploy via GitHub Actions:
+- workflow: `/Users/dan/Downloads/mind-circle-b40edb4e-4/.github/workflows/deploy-pages.yml`
+- deploy branch trigger: `main`
+- Pages build mode:
+  - `VITE_BASE_PATH=/MC_app/`
+  - `VITE_ROUTER_MODE=hash`
+
+After pushing to GitHub:
+1. Open repository `Settings -> Pages`.
+2. Set `Source` to `GitHub Actions`.
+3. Push to `main` (or run workflow manually).
+4. App URL will be: `https://intergalacticuser.github.io/MC_app/`
+
 ## Local data storage
 
 - App data is stored in browser `localStorage`.
