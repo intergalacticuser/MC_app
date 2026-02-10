@@ -1,0 +1,939 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Plus, Trash2, Camera, ArrowLeft, Edit2, ZoomIn, ZoomOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+const CATEGORY_SUGGESTIONS = {
+  food: [
+  "Italian", "Sushi", "Burgers", "Pizza", "Asian", "Vegan", "Desserts", "Coffee", "BBQ", "Mexican", "Healthy", "Street Food",
+  "Seafood", "Steak", "Breakfast", "Bakery", "Spicy", "Homemade", "Fine Dining", "Cocktails", "Wine", "Cheese", "Fruits", "Chocolate"],
+
+  travel: [
+  "Beach", "Mountains", "City Trip", "Camping", "Backpacking", "Luxury", "Road Trip", "Nature", "Culture", "Adventure",
+  "Snow", "Forest", "Desert", "Island", "Historical", "Safari", "Cruise", "Solo Travel", "Romantic Getaway", "Hidden Gems"],
+
+  sports: [
+  "Gym", "Running", "Yoga", "Swimming", "Football", "Basketball", "Tennis", "Cycling", "Martial Arts", "Dancing",
+  "Hiking", "Surfing", "Skiing", "Volleyball", "Boxing", "Pilates", "Crossfit", "Skateboarding", "Climbing", "Golf"],
+
+  hobbies: [
+  "Reading", "Gaming", "Photography", "Music", "Art", "Cooking", "Gardening", "Writing", "DIY", "Traveling",
+  "Drawing", "Dancing", "Movies", "Anime", "Cars", "Fashion", "Collecting", "Coding", "Board Games", "Astrology"],
+
+  music: [
+  "Rock", "Pop", "Hip Hop", "Jazz", "Electronic", "Classical", "Indie", "R&B", "Metal", "Folk",
+  "Techno", "House", "Rap", "Blues", "Soul", "Reggae", "K-Pop", "Opera", "Country", "Live Concerts"],
+
+  family: [
+  "Parents", "Siblings", "Partner", "Kids", "Pets", "Grandparents", "Friends", "Gatherings",
+  "Family Dinner", "Holidays", "Traditions", "Support", "Home", "Childhood", "Sunday Brunch", "Reunion"],
+
+  values: [
+  "Freedom", "Love", "Honesty", "Creativity", "Ambition", "Family", "Health", "Growth", "Kindness", "Loyalty",
+  "Spirituality", "Knowledge", "Adventure", "Balance", "Peace", "Respect", "Community", "Success", "Sustainability", "Optimism"],
+
+  sex: [
+  "Intimacy", "Gentle Sex", "Passion", "Deep Connection", "Foreplay", "Romance", "Sensuality", "Kink",
+  "Love Making", "Chemistry", "Touch", "Trust", "Aftercare", "Experimentation", "Cuddling", "Desire"]
+
+};
+
+const IMAGE_SUGGESTIONS = {
+  // --- FOOD ---
+  food: [
+  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80", // General Food
+  "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&q=80", // Salad
+  "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&q=80", // Pancakes
+  "https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=400&q=80" // Hearty Meal
+  ],
+  Italian: ["https://images.unsplash.com/photo-1498579150354-977475b7ea0b?w=400&q=80", "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=400&q=80"],
+  Sushi: ["https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&q=80", "https://images.unsplash.com/photo-1553621042-f6e147245754?w=400&q=80"],
+  Burgers: ["https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80"],
+  Pizza: ["https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400&q=80"],
+  Coffee: ["https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=400&q=80"],
+
+  // --- TRAVEL ---
+  travel: [
+  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400&q=80", // Nature
+  "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&q=80", // Traveler
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80", // Beach
+  "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=400&q=80" // Landscape
+  ],
+  Beach: ["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80", "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=400&q=80"],
+  Mountains: ["https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80", "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=400&q=80"],
+  "City Trip": ["https://images.unsplash.com/photo-1449824913929-49aa711563b1?w=400&q=80"],
+
+  // --- SPORTS ---
+  sports: [
+  "https://images.unsplash.com/photo-1517649763965-4d3770d43612?w=400&q=80", // Gym
+  "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=400&q=80", // Football
+  "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=400&q=80", // Yoga
+  "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&q=80" // Gym
+  ],
+  Yoga: ["https://images.unsplash.com/photo-1544367563-12123d8965cd?w=400&q=80"],
+  Running: ["https://images.unsplash.com/photo-1552674605-46945596d946?w=400&q=80"],
+
+  // --- HOBBIES ---
+  hobbies: [
+  "https://images.unsplash.com/photo-1493236296276-d1a96152e495?w=400&q=80", // Camera
+  "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=400&q=80", // Painting
+  "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=400&q=80" // Gaming
+  ],
+  Gaming: ["https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=400&q=80"],
+  Reading: ["https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=400&q=80"],
+  Photography: ["https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&q=80"],
+
+  // --- MUSIC ---
+  music: [
+  "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&q=80", // Mic
+  "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=400&q=80", // Concert
+  "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&q=80" // Instruments
+  ],
+  Rock: ["https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=400&q=80"],
+  Jazz: ["https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=400&q=80"],
+
+  // --- FAMILY ---
+  family: [
+  "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&q=80", // Family walk
+  "https://images.unsplash.com/photo-1542037104857-ffbb0b9155fb?w=400&q=80", // Happy family
+  "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=400&q=80" // Hugs
+  ],
+  Kids: ["https://images.unsplash.com/photo-1484820540004-14229fe36ca4?w=400&q=80"],
+  Pets: ["https://images.unsplash.com/photo-1450778869180-41d0601e046e?w=400&q=80"],
+
+  // --- VALUES ---
+  values: [
+  "https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=400&q=80", // Freedom
+  "https://images.unsplash.com/photo-1470173276384-c5e8a212b3d8?w=400&q=80", // Peace
+  "https://images.unsplash.com/photo-1517960413843-0aee8e2b3285?w=400&q=80" // Meditation
+  ],
+  Love: ["https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=400&q=80"],
+  Freedom: ["https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&q=80"],
+
+  // --- LOVE (Sex) ---
+  sex: [
+  "https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=400&q=80", // Couple
+  "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=400&q=80", // Intimacy
+  "https://images.unsplash.com/photo-1616091093729-c046a8a7bf08?w=400&q=80", // Hands
+  "https://images.unsplash.com/photo-1522542194-2c2e64fc460f?w=400&q=80" // Shadows
+  ],
+  Intimacy: ["https://images.unsplash.com/photo-1596120236172-231a7f5e5267?w=400&q=80"],
+  Romance: ["https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400&q=80"],
+  Passion: ["https://images.unsplash.com/photo-1502444983084-29c2da542db9?w=400&q=80"]
+};
+
+export default function CategoryEditor({ category, interests, userId, onClose, onSave, isFirstInterest = false }) {
+  const [uploading, setUploading] = useState(false);
+  const [editingInterest, setEditingInterest] = useState(null);
+  const [showDescriptionReward, setShowDescriptionReward] = useState(false);
+  const [editDescription, setEditDescription] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const [showPhotoAddAnimation, setShowPhotoAddAnimation] = useState(null);
+  const [showRewardPopup, setShowRewardPopup] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    const u = await base44.auth.me();
+    setUser(u);
+  };
+
+  // Wizard state
+  const [wizardStep, setWizardStep] = useState(null); // 'type', 'photo', 'description'
+  const [activePosition, setActivePosition] = useState(null);
+  const [selectedType, setSelectedType] = useState("");
+  const [tempPhotoUrl, setTempPhotoUrl] = useState("");
+  const [wizardDescription, setWizardDescription] = useState("");
+
+  const startAdding = (position) => {
+    setActivePosition(position);
+    setTempPhotoUrl("");
+    setWizardDescription("");
+
+    // If it's the center position (0), we automatically select the category itself
+    // and skip the type selection step
+    if (position === 0) {
+      setSelectedType(category.label);
+      setWizardStep('photo');
+    } else {
+      setSelectedType("");
+      setWizardStep('type');
+    }
+  };
+
+  const handleTypeSelect = (type) => {
+    setSelectedType(type);
+    setWizardStep('photo');
+  };
+
+  const handleWizardFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setTempPhotoUrl(file_url);
+      setWizardStep('description');
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("Ошибка загрузки. Попробуйте еще раз.");
+    }
+    setUploading(false);
+  };
+
+  const handleSelectSuggestion = (url) => {
+    setTempPhotoUrl(url);
+    setWizardStep('description');
+  };
+
+  const getSuggestions = () => {
+    const exactMatches = IMAGE_SUGGESTIONS[selectedType] || [];
+    const categoryMatches = IMAGE_SUGGESTIONS[category.id] || [];
+
+    // Combine exact matches with category images as fallback/fillers
+    // Use Set to remove duplicates if any
+    const combined = [...new Set([...exactMatches, ...categoryMatches])];
+    return combined.slice(0, 6); // Return top 6
+  };
+
+  const handleWizardComplete = async () => {
+    try {
+      setUploading(true);
+      const currentUser = await base44.auth.me();
+
+      // Reward logic
+      if (currentUser.tutorial_step === "category_view" || !currentUser.first_interest_added) {
+        const coinsToAdd = 50;
+        await base44.auth.updateMe({
+          coins: (currentUser.coins || 0) + coinsToAdd,
+          first_interest_added: true,
+          tutorial_step: "reward_pending" // Temporary step to show popup
+        });
+        setShowRewardPopup(true);
+      } else if (wizardDescription) {
+        // Bonus for description
+        await base44.auth.updateMe({
+          coins: (currentUser.coins || 0) + 20
+        });
+        setShowDescriptionReward(true);
+        setTimeout(() => setShowDescriptionReward(false), 3000);
+      }
+
+      await base44.entities.Interest.create({
+        user_id: userId,
+        category: category.id,
+        title: selectedType,
+        photo_url: tempPhotoUrl,
+        description: wizardDescription,
+        position: activePosition
+      });
+
+      setShowPhotoAddAnimation(activePosition);
+      setTimeout(() => setShowPhotoAddAnimation(null), 1000);
+
+      await onSave();
+
+      // Reset wizard
+      setWizardStep(null);
+      setActivePosition(null);
+      setSelectedType("");
+      setTempPhotoUrl("");
+      setWizardDescription("");
+    } catch (error) {
+      console.error("Error creating interest:", error);
+      alert("Ошибка создания. Попробуйте еще раз.");
+    }
+    setUploading(false);
+  };
+
+  const handleDeleteInterest = async (interestId) => {
+    try {
+      await base44.entities.Interest.delete(interestId);
+      await onSave();
+    } catch (error) {
+      console.error("Error deleting:", error);
+      alert("Ошибка удаления. Попробуйте еще раз.");
+    }
+  };
+
+  const handleEditClick = (interest) => {
+    setEditingInterest(interest);
+    setEditDescription(interest.description || "");
+  };
+
+  const handleSaveDescription = async () => {
+    if (!editingInterest) return;
+
+    try {
+      if (!editingInterest.description && editDescription) {
+        const currentUser = await base44.auth.me();
+        await base44.auth.updateMe({
+          coins: (currentUser.coins || 0) + 20
+        });
+        setShowDescriptionReward(true);
+        setTimeout(() => setShowDescriptionReward(false), 3000);
+      }
+
+      await base44.entities.Interest.update(editingInterest.id, {
+        description: editDescription
+      });
+      await onSave();
+      setEditingInterest(null);
+      setEditDescription("");
+    } catch (error) {
+      console.error("Error saving description:", error);
+      alert("Ошибка сохранения. Попробуйте еще раз.");
+    }
+  };
+
+  const getPositionForIndex = (index, total) => {
+    const angle = index * 360 / total;
+    const radius = 42;
+    const x = 50 + radius * Math.cos((angle - 90) * Math.PI / 180);
+    const y = 50 + radius * Math.sin((angle - 90) * Math.PI / 180);
+    return { x, y };
+  };
+
+  // Создаем массив с позициями 0-8
+  const positionedInterests = Array(9).fill(null);
+  interests.forEach((interest) => {
+    const pos = interest.position ?? 0;
+    if (pos >= 0 && pos < 9) {
+      positionedInterests[pos] = interest;
+    }
+  });
+
+  const centerPhoto = positionedInterests[0];
+  const surroundingPhotos = positionedInterests.slice(1, 9);
+  const maxSurrounding = 8;
+
+  const handleRewardClose = async () => {
+    await base44.auth.updateMe({ tutorial_step: "coins_highlight" });
+    setShowRewardPopup(false);
+    onClose();
+    window.location.reload(); // Refresh to update layout coins
+  };
+
+  const centerRef = React.useRef(null);
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
+        onClick={onClose}>
+
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white rounded-3xl p-6 md:p-8 max-w-4xl w-full shadow-2xl max-h-[90vh] overflow-y-auto relative">
+
+          {showDescriptionReward &&
+          <motion.div
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            exit={{ scale: 0 }}
+            className="absolute -top-12 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-orange-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 z-50">
+
+              <span className="text-2xl font-bold">+20 coins</span>
+            </motion.div>
+          }
+
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex items-center gap-2">
+
+              <ArrowLeft className="w-4 h-4" />
+              Назад
+            </Button>
+            
+            {/* Zoom Controls */}
+            <div className="flex gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setZoom(Math.min(zoom + 0.2, 2))}
+                      className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-all select-none">
+
+                      <ZoomIn className="w-5 h-5 text-gray-700 select-none" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Увеличить</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setZoom(Math.max(zoom - 0.2, 0.6))}
+                      className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-all select-none">
+
+                      <ZoomOut className="w-5 h-5 text-gray-700 select-none" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Уменьшить</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Mind Map */}
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+            <motion.div
+              animate={{ scale: zoom }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="relative w-full aspect-square max-w-3xl mx-auto overflow-visible pb-20"
+              style={{ transformOrigin: 'center center' }}>
+
+              {/* Background */}
+              <div className="absolute inset-0 pointer-events-none">
+                <svg width="100%" height="100%" className="absolute inset-0">
+                  {Array.from({ length: maxSurrounding }).map((_, index) => {
+                    const { x, y } = getPositionForIndex(index, maxSurrounding);
+                    return (
+                      <motion.line
+                        key={`line-${index}`}
+                        x1="50%"
+                        y1="50%"
+                        x2={`${x}%`}
+                        y2={`${y}%`}
+                        stroke={category.color}
+                        strokeWidth="3"
+                        strokeOpacity="0.3"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ delay: 0.3 + 0.05 * index, duration: 0.8 }} />);
+
+
+                  })}
+                </svg>
+
+                {Array.from({ length: 3 }).map((_, i) =>
+                <motion.div
+                  key={i}
+                  className="absolute rounded-full"
+                  style={{
+                    width: `${30 + i * 25}%`,
+                    height: `${30 + i * 25}%`,
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    border: `2px solid ${category.color}`,
+                    opacity: 0.2
+                  }}
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 30 + i * 10, repeat: Infinity, ease: "linear" }} />
+
+                )}
+              </div>
+
+              {/* CENTER PHOTO (position 0) */}
+              <div className="absolute inset-0 flex items-center justify-center z-20">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="relative group">
+                        <motion.div
+                          whileHover={{ scale: 1.1 }}
+                          className="relative"
+                          animate={showPhotoAddAnimation === 0 ? {
+                            scale: [1, 1.3, 1],
+                            rotate: [0, 360, 360]
+                          } : {}}
+                          transition={{ duration: 0.6 }}>
+
+                          {centerPhoto ?
+                          <div className="relative">
+                              <div
+                              className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-2xl overflow-hidden"
+                              style={{
+                                boxShadow: `0 30px 60px rgba(0,0,0,0.3), 0 15px 30px ${category.color}60`
+                              }}>
+
+                                <img
+                                src={centerPhoto.photo_url}
+                                alt=""
+                                className="w-full h-full object-cover" />
+
+                              </div>
+                              
+                              <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditClick(centerPhoto);
+                              }}
+                              className="absolute bottom-2 left-2 w-9 h-9 bg-blue-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xl hover:bg-blue-600 border-2 border-white">
+
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+
+                              <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteInterest(centerPhoto.id);
+                              }}
+                              className="absolute -top-2 -right-2 w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xl hover:bg-red-600 border-2 border-white">
+
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+
+                              {centerPhoto.description &&
+                            <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                                  <span className="text-white text-xs font-bold">✓</span>
+                                </div>
+                            }
+                            </div> :
+
+                          <div ref={centerRef}>
+                              <div
+                              onClick={() => startAdding(0)}
+                              className={`block w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-dashed shadow-2xl flex flex-col items-center justify-center transition-all cursor-pointer hover:scale-105 hover:bg-white/50`}
+                              style={{
+                                borderColor: category.color,
+                                backgroundColor: `${category.color}15`
+                              }}>
+
+                                <Plus className="w-12 h-12 mb-2" style={{ color: category.color }} />
+                                <span className="text-xs font-bold" style={{ color: category.color }}>
+                                  Добавить
+                                </span>
+                              </div>
+                            </div>
+                          }
+                        </motion.div>
+                        
+                        {user?.tutorial_step === "category_view" && !centerPhoto && centerRef.current &&
+                        <Spotlight
+                          targetRef={centerRef.current}
+                          text="Upload any photo here"
+                          position="bottom" />
+
+                        }
+
+                        <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/90 backdrop-blur-md rounded-xl px-5 py-2.5 shadow-2xl border border-gray-100">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">{category.icon}</span>
+                            <div className="text-center">
+                              <h3 className="font-bold text-gray-900 leading-tight">{category.label}</h3>
+                              {centerPhoto && centerPhoto.title &&
+                              <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider block">{centerPhoto.title}</span>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-gray-900/95 text-white border-gray-700">
+                      <p className="font-semibold">Главное фото</p>
+                      <p className="text-xs text-gray-300 mt-1">
+                        {centerPhoto ? "Нажмите для редактирования" : "Нажмите, чтобы добавить"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              {/* SURROUNDING PHOTOS (positions 1-8) */}
+              {Array.from({ length: maxSurrounding }).map((_, slotIndex) => {
+                const { x, y } = getPositionForIndex(slotIndex, maxSurrounding);
+                const photo = surroundingPhotos[slotIndex];
+                const position = slotIndex + 1; // position 1-8
+                const hasPhoto = !!photo;
+
+                return (
+                  <TooltipProvider key={`surrounding-${slotIndex}`}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <motion.div
+                          className="absolute z-40"
+                          style={{
+                            left: `${x}%`,
+                            top: `${y}%`
+                          }}
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={showPhotoAddAnimation === position ? {
+                            scale: [0, 1.5, 1],
+                            opacity: [0, 1, 1],
+                            rotate: [0, 360, 360]
+                          } : { scale: 1, opacity: 1 }}
+                          transition={{
+                            delay: showPhotoAddAnimation === position ? 0 : 0.5 + 0.08 * slotIndex,
+                            duration: showPhotoAddAnimation === position ? 0.6 : 0.5,
+                            type: "spring"
+                          }}
+                          whileHover={{ scale: 1.25 }}>
+
+                          <div className="relative -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                            {hasPhoto ?
+                            <>
+                                <div className="relative group">
+                                  <div
+                                  className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-white shadow-xl overflow-hidden"
+                                  style={{
+                                    boxShadow: `0 15px 35px rgba(0,0,0,0.25), 0 8px 15px ${category.color}30`
+                                  }}>
+
+                                    <img
+                                    src={photo.photo_url}
+                                    alt=""
+                                    className="w-full h-full object-cover" />
+
+                                  </div>
+
+                                  <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditClick(photo);
+                                  }}
+                                  className="absolute bottom-1 left-1 w-7 h-7 bg-blue-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xl hover:bg-blue-600 border-2 border-white">
+
+                                    <Edit2 className="w-3 h-3" />
+                                  </button>
+
+                                  <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteInterest(photo.id);
+                                  }}
+                                  className="absolute -top-1 -right-1 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xl hover:bg-red-600 border-2 border-white">
+
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+
+                                  {photo.description &&
+                                <div className="absolute bottom-1 right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                                      <span className="text-white text-xs font-bold">✓</span>
+                                    </div>
+                                }
+                                </div>
+
+                                {(photo.description || photo.title) &&
+                              <motion.div
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mt-2 px-2 py-1 bg-gray-800/95 backdrop-blur-sm rounded-lg text-white shadow-xl w-28 text-center">
+
+                                   {photo.title && <p className="text-[10px] font-bold text-purple-200 mb-0.5 uppercase tracking-wider">{photo.title}</p>}
+                                   {photo.description && <p className="text-[10px] line-clamp-2 break-words leading-tight">{photo.description}</p>}
+                                </motion.div>
+                              }
+                              </> :
+
+                            <div>
+                                <div
+                                onClick={() => startAdding(position)}
+                                className={`block w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-dashed bg-white shadow-xl flex items-center justify-center transition-all cursor-pointer hover:border-opacity-100 hover:scale-105`}
+                                style={{
+                                  borderColor: category.color
+                                }}>
+
+                                  <Plus className="w-10 h-10" style={{ color: category.color }} />
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        </motion.div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-gray-900/95 text-white border-gray-700">
+                        {photo ?
+                        <div>
+                            <p className="font-semibold text-sm">Фото #{position}</p>
+                            {photo.description &&
+                          <p className="text-xs text-gray-300 mt-1 max-w-[200px]">{photo.description}</p>
+                          }
+                            <p className="text-xs text-gray-400 mt-1">Нажмите для редактирования</p>
+                          </div> :
+
+                        <p className="text-sm">Добавить фото #{position}</p>
+                        }
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>);
+
+              })}
+            </motion.div>
+          </div>
+
+          {/* Info */}
+          <div className="text-center mt-8 text-sm text-gray-600">
+            <p className="font-medium">{interests.length} из 9 фото загружено</p>
+            <p className="text-xs mt-1 text-gray-500">
+              {centerPhoto ? 'Добавьте ещё до 8 фото вокруг главного' : 'Загрузите главное фото в центр'}
+            </p>
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Description Edit Modal */}
+      <AnimatePresence>
+        {editingInterest &&
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setEditingInterest(null)}>
+
+            <motion.div
+            initial={{ scale: 0.8, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: 50 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Добавить описание</h3>
+                <button
+                onClick={() => setEditingInterest(null)}
+                className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors">
+
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <img
+                src={editingInterest.photo_url}
+                alt=""
+                className="w-full h-48 object-cover rounded-xl" />
+
+              </div>
+
+              <Textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              placeholder="Опишите эту фотографию..."
+              className="mb-4 min-h-[100px]"
+              autoFocus />
+
+
+              <div className="flex gap-3">
+                <Button
+                variant="outline"
+                onClick={() => setEditingInterest(null)}
+                className="flex-1">
+
+                  Отмена
+                </Button>
+                <Button
+                onClick={handleSaveDescription}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600">
+
+                  Сохранить
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        }
+      </AnimatePresence>
+
+      {/* Reward Popup */}
+      {showRewardPopup &&
+      <TutorialPopup
+        step="reward"
+        onClose={handleRewardClose}
+        showCoins={true}
+        coinsAmount={50} />
+
+      }
+
+      {/* Adding Wizard Modal */}
+      <AnimatePresence>
+        {wizardStep &&
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4"
+          onClick={() => setWizardStep(null)}>
+
+            <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-gray-900 rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl border border-gray-100 dark:border-gray-800">
+
+              {/* Step 1: Select Type */}
+              {wizardStep === 'type' &&
+            <div className="space-y-6">
+                  <div className="text-center">
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Что добавим?</h3>
+                    <p className="text-gray-500 dark:text-gray-400">Выберите или напишите свой вариант</p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 justify-center max-h-[300px] overflow-y-auto p-1">
+                    {CATEGORY_SUGGESTIONS[category.id]?.map((type) =>
+                <button
+                  key={type}
+                  onClick={() => handleTypeSelect(type)}
+                  className="px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-all transform hover:scale-105 border border-transparent hover:border-purple-200">
+
+                        {type}
+                      </button>
+                )}
+                  </div>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-gray-200 dark:border-gray-700" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white dark:bg-gray-900 px-2 text-gray-500">Или свой вариант</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Input
+                  placeholder="Напишите название..."
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)} className="bg-transparent text-slate-900 px-3 py-1 text-base rounded-md flex h-9 w-full border border-input shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm flex-1"
+
+                  autoFocus />
+
+                    <Button
+                  onClick={() => handleTypeSelect(selectedType)}
+                  disabled={!selectedType.trim()}
+                  className="bg-purple-600 hover:bg-purple-700 text-white">
+
+                      <ArrowLeft className="w-4 h-4 rotate-180" />
+                    </Button>
+                  </div>
+                </div>
+            }
+
+              {/* Step 2: Upload Photo */}
+              {wizardStep === 'photo' &&
+            <div className="space-y-8 text-center">
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                      {activePosition === 0 ? `Главное: ${selectedType}` : selectedType}
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {activePosition === 0 ?
+                  "Загрузите главное фото, олицетворяющее эту категорию" :
+                  "Загрузите фото, которое отражает это"}
+                    </p>
+                  </div>
+
+                  {/* Suggested Images Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto p-1">
+                    {/* Upload Option */}
+                    <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleWizardFileUpload}
+                  className="hidden"
+                  id="wizard-upload"
+                  disabled={uploading} />
+
+                    <label
+                  htmlFor="wizard-upload"
+                  className="aspect-square rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-purple-500 dark:hover:border-purple-500 bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-purple-50 dark:hover:bg-purple-900/20 group relative overflow-hidden">
+
+                      {uploading ?
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" /> :
+
+                  <>
+                          <Camera className="w-8 h-8 text-gray-400 group-hover:text-purple-500 mb-2 transition-colors" />
+                          <span className="text-xs font-medium text-gray-500 group-hover:text-purple-500 text-center px-2">Загрузить свое</span>
+                        </>
+                  }
+                    </label>
+
+                    {/* Suggestions */}
+                    {getSuggestions().map((url, idx) =>
+                <motion.button
+                  key={idx}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.05 }}
+                  onClick={() => handleSelectSuggestion(url)}
+                  className="aspect-square rounded-2xl overflow-hidden border-2 border-transparent hover:border-purple-500 hover:scale-[1.02] transition-all relative group">
+
+                         <img src={url} alt="suggestion" className="w-full h-full object-cover" />
+                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                      </motion.button>
+                )}
+                  </div>
+
+                  {activePosition !== 0 &&
+              <Button variant="ghost" onClick={() => setWizardStep('type')}>
+                      Назад
+                    </Button>
+              }
+                </div>
+            }
+
+              {/* Step 3: Description */}
+              {wizardStep === 'description' &&
+            <div className="space-y-6">
+                  <div className="text-center">
+                    <div className="w-20 h-20 mx-auto rounded-full overflow-hidden mb-4 border-2 border-purple-200">
+                       <img src={tempPhotoUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Что вы в этом любите?</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Расскажите подробнее о {selectedType}</p>
+                  </div>
+
+                  <Textarea
+                placeholder={`Например: Я люблю ${selectedType}, потому что...`}
+                value={wizardDescription}
+                onChange={(e) => setWizardDescription(e.target.value)}
+                className="min-h-[100px] text-lg"
+                autoFocus />
+
+
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                  variant="outline"
+                  onClick={() => setWizardStep('photo')}
+                  className="flex-1">
+
+                      Назад
+                    </Button>
+                    <Button
+                  onClick={handleWizardComplete}
+                  disabled={uploading}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+
+                      {uploading ? 'Сохранение...' : 'Готово! ✨'}
+                    </Button>
+                  </div>
+                </div>
+            }
+            </motion.div>
+          </motion.div>
+        }
+      </AnimatePresence>
+    </>);
+
+}
