@@ -134,7 +134,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
     const exactMatches = FIXED_IMAGE_SUGGESTIONS[selectedType] || [];
     const categoryMatches = FIXED_IMAGE_SUGGESTIONS[category.id] || [];
     const combined = [...new Set([...exactMatches, ...categoryMatches])];
-    if (combined.length) return combined.slice(0, 6);
+    if (combined.length) return combined.slice(0, 12);
     return [
       "https://images.unsplash.com/photo-1516961642265-531546e84af2?w=400&q=80",
       "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=400&q=80",

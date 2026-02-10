@@ -369,6 +369,122 @@ function getDayKey(iso = nowIso()) {
   return String(iso).slice(0, 10);
 }
 
+// Engagement engine (remote mode): generates daily "come back" notifications.
+// Note: this is not a true push system; it creates Notification records + badges.
+const ENGAGEMENT_ENGINE_MIN_INTERVAL_MS = Number(process.env.MC_ENGAGEMENT_MIN_INTERVAL_MS || 6 * 60 * 60 * 1000);
+
+function hasNotificationDedupe(db, toUserId, dedupeKey) {
+  const key = String(dedupeKey || "").trim();
+  const uid = String(toUserId || "").trim();
+  if (!key || !uid) return false;
+  const rows = Array.isArray(db?.notifications) ? db.notifications : [];
+  return rows.some((n) => String(n?.to_user_id || "") === uid && String(n?.dedupe_key || "") === key);
+}
+
+function createNotification(db, payload) {
+  if (!db) return null;
+  const now = payload?.nowIso || nowIso();
+  const toUserId = String(payload?.to_user_id || "").trim();
+  if (!toUserId) return null;
+  const type = String(payload?.type || "system").trim() || "system";
+  const text = String(payload?.text || "").trim();
+  const dedupeKey = String(payload?.dedupe_key || "").trim();
+  if (!text) return null;
+
+  db.notifications = Array.isArray(db.notifications) ? db.notifications : [];
+  if (dedupeKey && hasNotificationDedupe(db, toUserId, dedupeKey)) return null;
+
+  const notification = {
+    id: randomId("notification"),
+    type,
+    from_user_id: payload?.from_user_id ? String(payload.from_user_id) : null,
+    to_user_id: toUserId,
+    badge_key: payload?.badge_key || "my_planet",
+    text,
+    is_read: false,
+    dedupe_key: dedupeKey,
+    // When the app tab is in background, Layout will show a browser Notification unless push_enabled === false.
+    push_enabled: payload?.push_enabled === false ? false : true,
+    created_date: now,
+    updated_date: now
+  };
+
+  db.notifications.unshift(notification);
+  const recipient = Array.isArray(db.users) ? db.users.find((u) => String(u.id) === toUserId && !u.disabled) : null;
+  if (recipient) {
+    incrementBadge(recipient, notification.badge_key, 1);
+    recipient.updated_date = now;
+    recipient.last_daily_update_day = recipient.last_daily_update_day || "";
+  }
+
+  pushEvent(db, "Notification", "create", notification.id, notification);
+  if (recipient) {
+    // Non-admin clients won't receive User events (sanitizer blocks them), but they do call /api/me on notification create.
+    pushEvent(db, "User", "update", recipient.id, stripPrivateUserFields(recipient));
+  }
+
+  return notification;
+}
+
+function runEngagementEngine(db, options = {}) {
+  const now = options.nowIso || nowIso();
+  const nowMs = Date.parse(now);
+  const lastRunMs = Date.parse(String(db?.meta?.last_engagement_run_at || ""));
+
+  const canRun =
+    options.force === true ||
+    !Number.isFinite(lastRunMs) ||
+    !Number.isFinite(nowMs) ||
+    nowMs - lastRunMs >= ENGAGEMENT_ENGINE_MIN_INTERVAL_MS;
+  if (!canRun) return [];
+
+  if (!db.meta) db.meta = {};
+  db.meta.last_engagement_run_at = now;
+
+  const dayKey = getDayKey(now);
+  const users = Array.isArray(db.users) ? db.users : [];
+  const created = [];
+
+  users.forEach((u) => {
+    if (!u || u.disabled) return;
+    if (isAdmin(u)) return;
+    const uid = String(u.id || "").trim();
+    if (!uid) return;
+
+    if (String(u.last_daily_update_day || "") === dayKey) return;
+
+    const metrics = ensureDailyMetrics(u, dayKey);
+    const views = Number(metrics.profile_views || 0);
+    const interactions = Number(metrics.category_interactions || 0);
+    const impressions = Number(metrics.search_impressions || 0);
+
+    const text =
+      `Daily update: your planet is glowing brighter. ` +
+      `${views} views, ${interactions} interactions, ${impressions} appearances today. ` +
+      `Open MindCircle to add one new circle and boost your matches.`;
+
+    const n = createNotification(db, {
+      nowIso: now,
+      type: "daily_update",
+      to_user_id: uid,
+      badge_key: "my_planet",
+      dedupe_key: `daily_update:${uid}:${dayKey}`,
+      text
+    });
+    if (!n) return;
+    created.push(n);
+
+    u.daily_highlight = {
+      day: dayKey,
+      text
+    };
+    u.last_daily_update_day = dayKey;
+    u.updated_date = now;
+  });
+
+  return created;
+}
+
 function ensureEntityName(entityName) {
   const name = String(entityName || "");
   if (!Object.prototype.hasOwnProperty.call(entityMap, name)) {
@@ -393,6 +509,59 @@ function requireAuth(viewer) {
     err.status = 401;
     throw err;
   }
+}
+
+async function handleAdminEngagement(req, res, viewer) {
+  requireAdmin(viewer);
+
+  if (req.method === "GET") {
+    const db = await dbStore.read();
+    const now = nowIso();
+    const last = String(db?.meta?.last_engagement_run_at || "");
+    const lastMs = Date.parse(last);
+    const nowMs = Date.parse(now);
+    const nextEligibleAt =
+      Number.isFinite(lastMs) && Number.isFinite(nowMs)
+        ? new Date(lastMs + ENGAGEMENT_ENGINE_MIN_INTERVAL_MS).toISOString()
+        : null;
+
+    sendJson(res, 200, {
+      ok: true,
+      now,
+      last_engagement_run_at: last || null,
+      next_eligible_at: nextEligibleAt,
+      min_interval_ms: ENGAGEMENT_ENGINE_MIN_INTERVAL_MS,
+      tick_ms: Number(process.env.MC_ENGAGEMENT_TICK_MS || 20 * 60 * 1000)
+    });
+    return;
+  }
+
+  if (req.method === "POST") {
+    const body = await readBody(req);
+    const payload = jsonFromBody(body);
+    const force = payload?.force === true;
+    const overrideNow = payload?.nowIso ? String(payload.nowIso) : "";
+
+    const createdIds = [];
+    let createdCount = 0;
+    let usedNow = "";
+    let dayKey = "";
+
+    await dbStore.mutate((db) => {
+      usedNow = overrideNow || nowIso();
+      dayKey = getDayKey(usedNow);
+      const created = runEngagementEngine(db, { nowIso: usedNow, force });
+      createdCount = Array.isArray(created) ? created.length : 0;
+      (created || []).forEach((n) => {
+        if (n?.id) createdIds.push(n.id);
+      });
+    });
+
+    sendJson(res, 200, { ok: true, now: usedNow, dayKey, force, createdCount, createdIds });
+    return;
+  }
+
+  sendJson(res, 405, { ok: false, error: "Method not allowed" });
 }
 
 function isOwnerForCreate(entityName, viewer, data) {
@@ -442,6 +611,28 @@ try {
 } catch {
   // ignore migration errors; app can still run
 }
+
+// Background engagement tick: generate daily notifications without requiring user activity.
+let engagementTickRunning = false;
+async function engagementTick({ force = false } = {}) {
+  if (engagementTickRunning) return;
+  engagementTickRunning = true;
+  try {
+    await dbStore.mutate((db) => {
+      try {
+        runEngagementEngine(db, { nowIso: nowIso(), force });
+      } catch (err) {
+        appendAppLog(db, { type: "engagement_error", message: err?.message || "engagement error" });
+      }
+    });
+  } finally {
+    engagementTickRunning = false;
+  }
+}
+
+// Run a little after boot, then periodically.
+setTimeout(() => void engagementTick({ force: false }), 8000);
+setInterval(() => void engagementTick({ force: false }), Number(process.env.MC_ENGAGEMENT_TICK_MS || 20 * 60 * 1000));
 
 async function getViewer(req) {
   const cookies = parseCookies(req);
@@ -513,6 +704,16 @@ async function handleApi(req, res) {
 
   if (pathname === "/api/health") {
     sendJson(res, 200, { ok: true, status: "healthy" });
+    return true;
+  }
+
+  if (pathname === "/api/admin/engagement" || pathname === "/api/admin/engagement/run") {
+    const { viewer } = await getViewer(req);
+    if (!viewer) {
+      sendJson(res, 401, { ok: false, error: "Authentication required" });
+      return true;
+    }
+    await handleAdminEngagement(req, res, viewer);
     return true;
   }
 

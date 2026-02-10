@@ -9,8 +9,10 @@ import UserMenu from "@/components/layout/UserMenu";
 import { syncUserProfile } from "@/components/utils/syncProfile";
 import { isAdminUser } from "@/lib/admin-utils";
 import { canRunNewUserTutorial, isOnboardingComplete, shouldForceOnboarding } from "@/lib/onboarding-utils";
+import { toast } from "@/components/ui/use-toast";
 
 const ONBOARDING_DISMISSED_KEY_PREFIX = "mindcircle_onboarding_dismissed_v1:";
+const ONBOARDING_NUDGE_DISMISSED_KEY_PREFIX = "mindcircle_onboarding_nudge_dismissed_v1:";
 
 const PAGE_THEME_BACKGROUNDS = {
   default: {
@@ -73,12 +75,22 @@ function isOnboardingDismissed(userId) {
   }
 }
 
+function isOnboardingNudgeDismissed(userId) {
+  if (!userId) return false;
+  try {
+    return sessionStorage.getItem(`${ONBOARDING_NUDGE_DISMISSED_KEY_PREFIX}${userId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export default function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = React.useState(null);
   const [unreadNotifications, setUnreadNotifications] = React.useState(0);
   const mobileNavRef = React.useRef(null);
+  const onboardingNudgeShownRef = React.useRef(""); // userId
 
   const onboardingPath = createPageUrl("Onboarding");
   const settingsPath = createPageUrl("Settings");
@@ -161,6 +173,22 @@ export default function Layout({ children }) {
       if (shouldForceOnboarding(user) && location.pathname !== onboardingPath) {
         // User can temporarily dismiss onboarding via the X button, but it must show again next login.
         if (isOnboardingDismissed(user.id)) {
+          // Show a one-time-per-login reminder toast (dismissable for the current browser session/tab).
+          if (!isOnboardingNudgeDismissed(user.id) && onboardingNudgeShownRef.current !== String(user.id || "")) {
+            onboardingNudgeShownRef.current = String(user.id || "");
+            toast({
+              title: "MindCircle",
+              description: (
+                <div className="leading-snug">
+                  Пройдите онбординг, чтобы ваш Planet правильно открывался другим и чтобы подбор совпадений стал точнее.
+                </div>
+              ),
+              className:
+                "rounded-2xl border border-white/20 bg-gradient-to-br from-slate-950/95 via-indigo-950/85 to-fuchsia-950/80 text-white shadow-2xl backdrop-blur-md",
+              dismiss_storage_key: `${ONBOARDING_NUDGE_DISMISSED_KEY_PREFIX}${user.id}`,
+              dismiss_storage_value: "1",
+            });
+          }
           return;
         }
         if (user.onboarding_completed) {

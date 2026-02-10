@@ -5,7 +5,6 @@ import { Edit3, ImageIcon, Share2, Palette } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import MindMapView from "../components/profile/MindMapView";
 import ProfileEditor from "../components/profile/ProfileEditor";
-import CategoryEditor from "../components/profile/CategoryEditorV3";
 
 import BackgroundSelector from "../components/profile/BackgroundSelector";
 import ShareUniverse from "../components/share/ShareUniverse";
@@ -16,6 +15,8 @@ import { syncUserProfile } from "@/components/utils/syncProfile";
 import { CATEGORIES_LIST, calculateMatchScore, isProfileDiscoverable } from "@/components/utils/matchingUtils";
 import { createPageUrl } from "@/utils";
 import { canRunNewUserTutorial } from "@/lib/onboarding-utils";
+import ImageCropModal from "@/components/ui/image-crop-modal";
+import SpaceBackdrop from "@/components/SpaceBackdrop";
 
 const FIXED_CATEGORIES = CATEGORIES_LIST;
 
@@ -24,8 +25,9 @@ export default function MyProfile() {
   const [interests, setInterests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingProfile, setEditingProfile] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [cropFile, setCropFile] = useState(null);
   const [editingBackground, setEditingBackground] = useState(false);
   const [sharingUniverse, setSharingUniverse] = useState(false);
   const [editingThemes, setEditingThemes] = useState(false);
@@ -69,10 +71,10 @@ export default function MyProfile() {
 
     if (user.tutorial_v2_step === "category_highlight") {
       setHighlightCategory(FIXED_CATEGORIES[0]);
-    } else if (!selectedCategory) {
+    } else {
       setHighlightCategory(null);
     }
-  }, [user?.tutorial_v2_step, selectedCategory]);
+  }, [user?.tutorial_v2_step]);
 
   const loadData = async () => {
     try {
@@ -144,14 +146,9 @@ export default function MyProfile() {
   const handleProfilePhotoUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    setUploadingPhoto(true);
-    const { file_url } = await mc.integrations.Core.UploadFile({ file });
-    await mc.auth.updateMe({ profile_photo: file_url });
-    const updatedUser = await mc.auth.me();
-    await syncUserProfile(updatedUser).catch(() => {});
-    await loadData();
-    setUploadingPhoto(false);
+    try { e.target.value = ""; } catch {}
+    setCropFile(file);
+    setCropOpen(true);
   };
 
   const getCategoryInterests = (categoryId) => {
@@ -177,6 +174,8 @@ export default function MyProfile() {
     );
   }
 
+  const activeThemeId = user?.is_premium ? (user?.premium_theme || "default") : "default";
+
   return (
     <div className="min-h-screen py-8 px-2 md:px-4 relative">
        {/* Background Glow */}
@@ -187,7 +186,7 @@ export default function MyProfile() {
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+        <div className="relative z-20 flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">My Planet</h1>
             <p className="text-purple-200/60 text-lg font-light">Your personal universe of interests</p>
@@ -234,7 +233,7 @@ export default function MyProfile() {
         </div>
 
         {profileStats && (
-          <div className="mb-8 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl p-4 md:p-5">
+          <div className="relative z-20 mb-8 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl p-4 md:p-5">
             <p className="text-sm font-semibold text-purple-100 mb-2">Profile Progress</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-purple-100">
               <div className="rounded-xl bg-black/20 p-3">
@@ -257,26 +256,92 @@ export default function MyProfile() {
         )}
 
         {/* Mind Map */}
-        <MindMapView
-          user={user}
-          interests={interests}
-          categories={FIXED_CATEGORIES}
-          onCategoryClick={async (cat) => {
-            setSelectedCategory(cat);
-            const isGuidedCategory = cat.id === FIXED_CATEGORIES[0]?.id;
-            if (user?.tutorial_v2_step === "category_highlight" && isGuidedCategory) {
-              try {
-                await mc.auth.updateMe({ tutorial_v2_step: "category_center_photo" });
-                setUser((prev) => (prev ? { ...prev, tutorial_v2_step: "category_center_photo" } : prev));
-              } catch {
-                // ignore
-              }
-            }
-            setHighlightCategory(null);
+        <div className="relative isolate">
+          {/* Side "space" panels (animated) */}
+          <div className="pointer-events-none absolute inset-y-[-90px] left-0 right-0 z-0">
+            <div
+              className="hidden lg:block absolute inset-y-0 left-0 w-[26vw] max-w-[520px] opacity-85"
+              style={{
+                maskImage: "linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 72%, rgba(0,0,0,0) 100%)",
+                WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 72%, rgba(0,0,0,0) 100%)",
+                maskRepeat: "no-repeat",
+                WebkitMaskRepeat: "no-repeat",
+                maskSize: "100% 100%",
+                WebkitMaskSize: "100% 100%"
+              }}
+            >
+              <div className="relative w-full h-full overflow-hidden">
+                <SpaceBackdrop density="page" themeId={activeThemeId} />
+              </div>
+            </div>
+            <div
+              className="hidden lg:block absolute inset-y-0 right-0 w-[26vw] max-w-[520px] opacity-85"
+              style={{
+                maskImage: "linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 72%, rgba(0,0,0,0) 100%)",
+                WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 72%, rgba(0,0,0,0) 100%)",
+                maskRepeat: "no-repeat",
+                WebkitMaskRepeat: "no-repeat",
+                maskSize: "100% 100%",
+                WebkitMaskSize: "100% 100%"
+              }}
+            >
+              <div className="relative w-full h-full overflow-hidden">
+                <SpaceBackdrop density="page" themeId={activeThemeId} />
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10">
+            <MindMapView
+              user={user}
+              interests={interests}
+              categories={FIXED_CATEGORIES}
+              enableDrilldown
+              onInterestsChanged={loadData}
+              onCategoryClick={async (cat) => {
+                const isGuidedCategory = cat.id === FIXED_CATEGORIES[0]?.id;
+                if (user?.tutorial_v2_step === "category_highlight" && isGuidedCategory) {
+                  try {
+                    await mc.auth.updateMe({ tutorial_v2_step: "category_center_photo" });
+                    setUser((prev) => (prev ? { ...prev, tutorial_v2_step: "category_center_photo" } : prev));
+                  } catch {
+                    // ignore
+                  }
+                }
+                setHighlightCategory(null);
+              }}
+              onPhotoUpload={handleProfilePhotoUpload}
+              uploadingPhoto={uploadingPhoto}
+              categoryRefs={categoryRefs}
+            />
+          </div>
+        </div>
+
+        <ImageCropModal
+          open={cropOpen}
+          file={cropFile}
+          title="Center your profile photo"
+          onCancel={() => {
+            setCropOpen(false);
+            setCropFile(null);
           }}
-          onPhotoUpload={handleProfilePhotoUpload}
-          uploadingPhoto={uploadingPhoto}
-          categoryRefs={categoryRefs}
+          onConfirm={async (croppedFile) => {
+            if (!croppedFile) return;
+            setUploadingPhoto(true);
+            try {
+              const { file_url } = await mc.integrations.Core.UploadFile({ file: croppedFile });
+              await mc.auth.updateMe({ profile_photo: file_url });
+              const updatedUser = await mc.auth.me();
+              await syncUserProfile(updatedUser).catch(() => {});
+              await loadData();
+            } catch (err) {
+              console.error("Profile photo upload failed:", err);
+              alert("Upload failed. Please try again.");
+            }
+            setUploadingPhoto(false);
+            setCropOpen(false);
+            setCropFile(null);
+          }}
         />
 
         {/* Profile Editor Modal */}
@@ -297,23 +362,6 @@ export default function MyProfile() {
               user={user}
               onClose={() => setEditingBackground(false)}
               onSave={loadData}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Category Editor Modal */}
-        <AnimatePresence>
-          {selectedCategory && (
-            <CategoryEditor
-              category={selectedCategory}
-              interests={getCategoryInterests(selectedCategory.id)}
-              userId={user.id}
-              onClose={() => {
-                setSelectedCategory(null);
-                setHighlightCategory(null);
-              }}
-              onSave={loadData}
-              isFirstInterest={!user?.first_interest_added}
             />
           )}
         </AnimatePresence>

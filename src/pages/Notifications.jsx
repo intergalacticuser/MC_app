@@ -101,6 +101,8 @@ export default function Notifications() {
         return createPageUrl("Matching");
       case "like":
         return `${createPageUrl("UserProfile")}?userId=${notification.from_user_id}`;
+      case "daily_update":
+        return createPageUrl("MyProfile");
       default:
         return createPageUrl("Discover");
     }
@@ -160,8 +162,14 @@ export default function Notifications() {
         ) : (
           <div className="space-y-3">
             {notifications.map((notification, index) => {
-              const user = users[notification.from_user_id];
-              if (!user) return null;
+              const systemUser = {
+                id: "system",
+                full_name: "MindCircle",
+                profile_photo: "/icon-192.png",
+                onboarding_completed: true
+              };
+              const user = notification.from_user_id ? users[notification.from_user_id] : systemUser;
+              const resolvedUser = user || systemUser;
 
               return (
                 <motion.div
@@ -183,10 +191,10 @@ export default function Notifications() {
                         {/* Avatar */}
                         <div className="relative flex-shrink-0">
                           <div className="w-14 h-14 rounded-full overflow-hidden border-3 border-white dark:border-gray-700 shadow-lg">
-                            {user.profile_photo ? (
+                            {resolvedUser.profile_photo ? (
                               <img
-                                src={user.profile_photo}
-                                alt={user.full_name}
+                                src={resolvedUser.profile_photo}
+                                alt={resolvedUser.full_name}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -204,7 +212,7 @@ export default function Notifications() {
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start mb-1">
                             <h3 className="font-bold text-gray-900 dark:text-white">
-                              {user.full_name}
+                              {resolvedUser.full_name}
                             </h3>
                             <span className="text-xs text-gray-500 dark:text-gray-400">
                               {new Date(notification.created_date).toLocaleDateString('ru-RU', {

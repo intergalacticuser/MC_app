@@ -10,6 +10,25 @@ function listTitles(titles, { limit = 8 } = {}) {
   return cleaned.slice(0, limit);
 }
 
+function pickCoachFlavor() {
+  const flavors = [
+    "комета",
+    "созвездие",
+    "орбита",
+    "звездная карта",
+    "метеорный дождь",
+    "северная звезда",
+    "космическая станция",
+    "лунная тропа",
+    "галактический маяк",
+    "туманность",
+    "астронавтский дневник",
+    "космический телескоп"
+  ];
+  const idx = Math.floor(Math.random() * flavors.length);
+  return flavors[idx] || "орбита";
+}
+
 export function buildInterestNudgePrompt({
   categoryId = "",
   categoryLabel = "",
@@ -22,6 +41,7 @@ export function buildInterestNudgePrompt({
   const safeTitle = cleanText(interestTitle);
   const safeCategoryLabel = cleanText(categoryLabel);
   const safeCategoryId = cleanText(categoryId);
+  const flavor = pickCoachFlavor();
 
   return [
     "Ты встроенный ассистент MindCircle в космической тематике.",
@@ -29,6 +49,7 @@ export function buildInterestNudgePrompt({
     "",
     "Тон: очень позитивный, теплый, приятный, немного \"звездный\" (легкие космические метафоры), но без инфантилизма.",
     "Задача: напиши ОДНУ короткую реплику (1-2 предложения, до 220 символов) в стиле дружелюбного \"комикс-пузыря\".",
+    `Вариативность: используй один образ/метафору про ${flavor} (естественно, без слова \"вариативность\").`,
     "Реплика должна:",
     "- быть уникальной и не шаблонной",
     "- объяснять, чем этот интерес может быть классным для человека",
@@ -58,6 +79,7 @@ export function buildInterestReflectionPrompt({
   const safeCategoryLabel = cleanText(categoryLabel);
   const safeCategoryId = cleanText(categoryId);
   const safeDesc = String(userDescription || "").trim();
+  const flavor = pickCoachFlavor();
 
   return [
     "Ты встроенный ассистент MindCircle в космической тематике.",
@@ -65,6 +87,7 @@ export function buildInterestReflectionPrompt({
     "",
     "Тон: очень позитивный, теплый, приятный, немного \"звездный\" (легкие космические метафоры), но без пафоса.",
     "Задача: ответь как поддерживающий гид (2-3 коротких предложения, до 320 символов).",
+    `Вариативность: добавь один легкий космический образ про ${flavor} (естественно, без слова \"вариативность\").`,
     "Ответ должен:",
     "- кратко перефразировать 1 ключевую мысль пользователя (покажи, что ты понял)",
     "- похвалить конкретно, без пустых комплиментов",

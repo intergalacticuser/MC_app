@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 
 const TOAST_LIMIT = 20;
 // Remove closed toasts after their exit animation finishes.
-const TOAST_REMOVE_DELAY = 6000;
+// Keep this close to the CSS exit animation duration so close feels instant but still smooth.
+const TOAST_REMOVE_DELAY = 1400;
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -153,7 +154,7 @@ function useToast() {
         listeners.splice(index, 1);
       }
     };
-  }, [state]);
+  }, []);
 
   return {
     ...state,

@@ -3,11 +3,21 @@ import { mc } from '@/api/mcClient';
 
 const AuthContext = createContext();
 const ONBOARDING_DISMISSED_KEY_PREFIX = "mindcircle_onboarding_dismissed_v1:";
+const ONBOARDING_NUDGE_DISMISSED_KEY_PREFIX = "mindcircle_onboarding_nudge_dismissed_v1:";
 
 function clearOnboardingDismissal(userId) {
   if (!userId) return;
   try {
     sessionStorage.removeItem(`${ONBOARDING_DISMISSED_KEY_PREFIX}${userId}`);
+  } catch {
+    // ignore
+  }
+}
+
+function clearOnboardingNudgeDismissal(userId) {
+  if (!userId) return;
+  try {
+    sessionStorage.removeItem(`${ONBOARDING_NUDGE_DISMISSED_KEY_PREFIX}${userId}`);
   } catch {
     // ignore
   }
@@ -33,6 +43,10 @@ export const AuthProvider = ({ children }) => {
       setIsLoadingAuth(true);
       setAuthError(null);
       const currentUser = await mc.auth.me();
+      // New login event: clear the onboarding nudge dismissal so it can appear once again.
+      if (!isAuthenticated) {
+        clearOnboardingNudgeDismissal(currentUser?.id);
+      }
       setUser(currentUser);
       setIsAuthenticated(true);
     } catch (error) {
@@ -49,6 +63,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = (shouldRedirect = true) => {
     clearOnboardingDismissal(user?.id);
+    clearOnboardingNudgeDismissal(user?.id);
     setUser(null);
     setIsAuthenticated(false);
     

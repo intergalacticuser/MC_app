@@ -1,17 +1,19 @@
 import React from "react";
 import { mc } from "@/api/mcClient";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { ArrowLeft, Camera, Edit2, Plus, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import CoinRewardPopup from "@/components/rewards/CoinRewardPopup";
+import ImageCropModal from "@/components/ui/image-crop-modal";
 
 import { CATEGORY_SUGGESTIONS as FIXED_SUBCATEGORIES, IMAGE_SUGGESTIONS as FIXED_IMAGE_SUGGESTIONS, CONCEPT_SUGGESTIONS } from "./categorySuggestionsData";
 import { cosmicCoachToast } from "@/components/assistant/cosmicCoachToast";
 import { buildInterestNudgePrompt, buildInterestReflectionPrompt } from "@/lib/cosmicCoach";
 import { isCoachDismissed } from "@/lib/coachDismissals";
+import SubcategoryOrbit from "./SubcategoryOrbit";
 
 function toSafeText(value) {
   return String(value || "").trim();
@@ -30,11 +32,23 @@ function getSortKey(interest) {
   return 0;
 }
 
-export default function CategoryEditorV3({ category, interests, userId, onClose, onSave }) {
+export default function CategoryEditorV3({
+  category,
+  interests,
+  userId,
+  onClose,
+  onSave,
+  initialView,
+  initialSubcat,
+  startWizard = false,
+  onInterestCreated
+}) {
   const [user, setUser] = React.useState(null);
 
-  const [view, setView] = React.useState("subcats"); // subcats | concepts
-  const [selectedSubcat, setSelectedSubcat] = React.useState("");
+  const [view, setView] = React.useState(() => (initialView === "concepts" ? "concepts" : "subcats")); // subcats | concepts
+  const [selectedSubcat, setSelectedSubcat] = React.useState(() => String(initialSubcat || ""));
+  const modalRef = React.useRef(null);
+  const [warpFx, setWarpFx] = React.useState(null); // { x, y, key }
 
   const [wizardStep, setWizardStep] = React.useState(null); // concept | photo | description
   const [selectedConcept, setSelectedConcept] = React.useState("");
@@ -43,6 +57,8 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
   const [tempPhotoUrl, setTempPhotoUrl] = React.useState("");
   const [wizardDescription, setWizardDescription] = React.useState("");
   const [uploading, setUploading] = React.useState(false);
+  const [cropOpen, setCropOpen] = React.useState(false);
+  const [cropFile, setCropFile] = React.useState(null);
 
   const [editingInterest, setEditingInterest] = React.useState(null);
   const [editTitle, setEditTitle] = React.useState("");
@@ -56,6 +72,15 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
 
   React.useEffect(() => {
     mc.auth.me().then(setUser).catch(() => {});
+  }, []);
+
+  React.useEffect(() => {
+    if (!startWizard) return;
+    const sub = String(initialSubcat || "").trim();
+    if (!sub) return;
+    setSelectedSubcat(sub);
+    setView("concepts");
+    setWizardStep("concept");
   }, []);
 
   const subcats = FIXED_SUBCATEGORIES?.[category?.id] || [];
@@ -95,7 +120,20 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
     }
   }, []);
 
-  const openSubcat = (label) => {
+  const openSubcat = (label, e) => {
+    // Cosmetic warp: expand from the clicked point inside the modal.
+    try {
+      const rect = modalRef.current?.getBoundingClientRect?.();
+      if (rect && e?.clientX != null && e?.clientY != null) {
+        const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+        const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+        const key = `${Date.now()}:${Math.random().toString(16).slice(2)}`;
+        setWarpFx({ x, y, key });
+        window.setTimeout(() => setWarpFx(null), 650);
+      }
+    } catch {
+      // ignore
+    }
     setSelectedSubcat(label);
     setView("concepts");
   };
@@ -143,11 +181,12 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
   };
 
   const getPhotoSuggestions = () => {
-    const byConcept = FIXED_IMAGE_SUGGESTIONS[selectedConcept] || [];
+    const conceptKey = selectedSubcat && selectedConcept ? `${selectedSubcat}::${selectedConcept}` : selectedConcept;
+    const byConcept = FIXED_IMAGE_SUGGESTIONS[conceptKey] || FIXED_IMAGE_SUGGESTIONS[selectedConcept] || [];
     const bySubcat = FIXED_IMAGE_SUGGESTIONS[selectedSubcat] || [];
     const byCategory = FIXED_IMAGE_SUGGESTIONS[category?.id] || [];
     const combined = uniq([...byConcept, ...bySubcat, ...byCategory]);
-    return combined.length ? combined.slice(0, 9) : [
+    return combined.length ? combined.slice(0, 18) : [
       "https://images.unsplash.com/photo-1516961642265-531546e84af2?w=400&q=80",
       "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=400&q=80",
       "https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=400&q=80"
@@ -157,17 +196,10 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
   const handleWizardFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    setPhotoSource("upload");
-    try {
-      const { file_url } = await mc.integrations.Core.UploadFile({ file });
-      setTempPhotoUrl(file_url);
-      setWizardStep("description");
-    } catch (error) {
-      console.error(error);
-      alert("Upload failed. Please try again.");
-    }
-    setUploading(false);
+    // reset input so user can re-pick the same file
+    try { e.target.value = ""; } catch {}
+    setCropFile(file);
+    setCropOpen(true);
   };
 
   const handleSelectSuggestion = (url) => {
@@ -196,6 +228,11 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
         description: wizardDescription,
         sort_index: nextSortIndex
       });
+      try {
+        if (typeof onInterestCreated === "function") onInterestCreated(created);
+      } catch {
+        // ignore
+      }
 
       // Reflect if user wrote something.
       const initialDesc = toSafeText(wizardDescription);
@@ -250,6 +287,9 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
 
       await onSave();
       resetWizard();
+      if (startWizard && typeof onClose === "function") {
+        onClose();
+      }
     } catch (error) {
       console.error(error);
       alert("Create failed. Please try again.");
@@ -330,8 +370,32 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 12 }}
           onClick={(e) => e.stopPropagation()}
+          ref={modalRef}
           className="bg-white rounded-3xl p-6 md:p-8 max-w-4xl w-full shadow-2xl max-h-[90vh] overflow-y-auto relative"
         >
+          <AnimatePresence initial={false}>
+            {warpFx && (
+              <motion.div
+                key={warpFx.key}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl"
+              >
+                <motion.div
+                  initial={{ scale: 0.35, opacity: 0.8 }}
+                  animate={{ scale: 1.85, opacity: 0 }}
+                  transition={{ duration: 0.65, ease: [0.2, 0.8, 0.2, 1] }}
+                  className="absolute inset-0"
+                  style={{
+                    background: `radial-gradient(240px circle at ${warpFx.x}px ${warpFx.y}px, rgba(99,102,241,0.28), rgba(99,102,241,0.14) 35%, rgba(255,255,255,0) 70%)`,
+                    filter: "blur(0px)",
+                    transformOrigin: `${warpFx.x}px ${warpFx.y}px`,
+                  }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
           {showDescriptionReward && (
             <motion.div
               initial={{ scale: 0, rotate: -180 }}
@@ -367,7 +431,17 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
               <div className="text-xs uppercase tracking-wider text-gray-500">Category</div>
               <div className="text-lg font-bold text-gray-900">{category?.label}</div>
               {view === "concepts" && selectedSubcat && (
-                <div className="text-sm text-gray-600 mt-0.5">{selectedSubcat}</div>
+                <div className="mt-2 flex items-center justify-center gap-2">
+                  <motion.div
+                    layoutId={`subcat:${category?.id || ""}:${selectedSubcat}`}
+                    className="w-10 h-10 rounded-full border border-white shadow-lg"
+                    style={{
+                      background:
+                        "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.98), rgba(99,102,241,0.18) 60%, rgba(0,0,0,0.02) 100%)",
+                    }}
+                  />
+                  <div className="text-sm font-semibold text-gray-700">{selectedSubcat}</div>
+                </div>
               )}
             </div>
 
@@ -376,40 +450,40 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
             </button>
           </div>
 
-          {view === "subcats" ? (
-            <div className="space-y-6">
-              <div className="rounded-2xl bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-indigo-100 p-4">
-                <p className="text-sm font-semibold text-gray-900">Choose a subcategory</p>
-                <p className="text-xs text-gray-600 mt-1">Five fixed subcategories inside each main category.</p>
-              </div>
+          <LayoutGroup id={`cat-v3:${category?.id || "unknown"}:editor`}>
+            <AnimatePresence initial={false} mode="popLayout">
+              {view === "subcats" ? (
+                <motion.div
+                  key="subcats"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-6"
+                >
+                  <div className="rounded-2xl bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border border-indigo-100 p-4">
+                    <p className="text-sm font-semibold text-gray-900">Choose a subcategory</p>
+                    <p className="text-xs text-gray-600 mt-1">Tap a “planet” to zoom in and add concepts.</p>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {subcats.map((label) => {
-                  const count = getItemsForSubcat(label).length;
-                  return (
-                    <button
-                      key={label}
-                      onClick={() => openSubcat(label)}
-                      className="group text-left rounded-2xl border border-gray-200 bg-white hover:border-indigo-300 hover:shadow-lg transition-all p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="text-base font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">
-                            {label}
-                          </div>
-                          <div className="text-xs text-gray-600 mt-1">{count} items</div>
-                        </div>
-                        <div className="w-9 h-9 rounded-full bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100">
-                          <ArrowLeft className="w-4 h-4 rotate-180" />
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-5">
+                  <SubcategoryOrbit
+                    categoryId={category?.id}
+                    categoryLabel={category?.label}
+                    subcats={subcats}
+                    getCount={(label) => getItemsForSubcat(label).length}
+                    onPick={(label, e) => openSubcat(label, e)}
+                    layoutIdPrefix="subcat"
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="concepts"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-5"
+                >
               <div className="rounded-2xl border border-gray-200 bg-white p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -496,14 +570,42 @@ export default function CategoryEditorV3({ category, interests, userId, onClose,
                   <div className="text-xs font-semibold mt-1">Add</div>
                 </motion.button>
               </motion.div>
-            </div>
-          )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </LayoutGroup>
         </motion.div>
       </motion.div>
 
       <AnimatePresence>
         {showRewardPopup && <CoinRewardPopup amount={rewardAmount} onClose={() => setShowRewardPopup(false)} />}
       </AnimatePresence>
+
+      <ImageCropModal
+        open={cropOpen}
+        file={cropFile}
+        title="Center your photo"
+        onCancel={() => {
+          setCropOpen(false);
+          setCropFile(null);
+        }}
+        onConfirm={async (croppedFile) => {
+          if (!croppedFile) return;
+          setUploading(true);
+          setPhotoSource("upload");
+          try {
+            const { file_url } = await mc.integrations.Core.UploadFile({ file: croppedFile });
+            setTempPhotoUrl(file_url);
+            setWizardStep("description");
+          } catch (error) {
+            console.error(error);
+            alert("Upload failed. Please try again.");
+          }
+          setUploading(false);
+          setCropOpen(false);
+          setCropFile(null);
+        }}
+      />
 
       {/* Edit Modal */}
       <AnimatePresence>
