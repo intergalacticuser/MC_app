@@ -3,6 +3,7 @@ import userProfilesSeedCsv from "@/data/UserProfile_export.csv?raw";
 
 const STORAGE_KEY = "mindcircle_local_backend_v1";
 const AUTH_KEY = "mindcircle_local_auth_user_id";
+const ONBOARDING_DISMISSED_KEY_PREFIX = "mindcircle_onboarding_dismissed_v1:";
 const SHARED_DB_ENDPOINT = "/__mindcircle/local-db";
 const MATCH_EVENT_THRESHOLD = 10;
 const MAX_PUSH_NOTIFICATIONS_PER_DAY = 2;
@@ -845,6 +846,15 @@ function setCurrentUser(userId) {
   else getStorage().removeItem(AUTH_KEY);
 }
 
+function clearOnboardingDismissal(userId) {
+  if (!userId) return;
+  try {
+    sessionStorage.removeItem(`${ONBOARDING_DISMISSED_KEY_PREFIX}${userId}`);
+  } catch {
+    // ignore
+  }
+}
+
 function isAdmin(user) {
   const role = String(user?.role || user?._app_role || "").toLowerCase();
   return role === "admin" || user?.is_admin === true;
@@ -1660,6 +1670,8 @@ const auth = {
   },
 
   logout(redirectUrl) {
+    const currentUserId = getStorage().getItem(AUTH_KEY);
+    clearOnboardingDismissal(currentUserId);
     setCurrentUser(null);
     if (typeof window !== "undefined") {
       if (redirectUrl) {
@@ -2232,6 +2244,155 @@ const auth = {
     return auth.me();
   },
 
+  async adminResetPassword(userId, payload = {}) {
+    if (!userId) throw new Error("User ID is required");
+    const requestedPassword = String(payload?.password || "").trim();
+    const requireChange = payload?.require_change !== false;
+    const returnPassword = payload?.return_password !== false;
+    let nextPassword = "";
+
+    saveDb((db) => {
+      const me = getCurrentUser(db);
+      if (!isAdmin(me)) throw new Error("Admin role required");
+      const target = db.users.find((u) => u.id === userId);
+      if (!target) throw new Error("User not found");
+      nextPassword = requestedPassword || `mc_${Math.random().toString(36).slice(2, 12)}`;
+      target.password = nextPassword;
+      target.must_change_password = !!requireChange;
+      target.updated_date = defaultNow();
+    });
+
+    return {
+      ok: true,
+      success: true,
+      temp_password: returnPassword ? nextPassword : ""
+    };
+  },
+
+  async adminAdjustCoins(userId, payload = {}) {
+    if (!userId) throw new Error("User ID is required");
+    const delta = Number(payload?.delta ?? payload?.amount ?? 0);
+    if (!Number.isFinite(delta) || delta === 0) throw new Error("delta must be non-zero");
+    let before = 0;
+    let after = 0;
+    saveDb((db) => {
+      const me = getCurrentUser(db);
+      if (!isAdmin(me)) throw new Error("Admin role required");
+      const target = db.users.find((u) => u.id === userId);
+      if (!target) throw new Error("User not found");
+      before = Number(target.coins || 0);
+      after = Math.max(0, before + delta);
+      target.coins = after;
+      target.updated_date = defaultNow();
+    });
+    return { ok: true, success: true, before, after };
+  },
+
+  async adminSetPremium(userId, payload = {}) {
+    if (!userId) throw new Error("User ID is required");
+    const isPremium = Boolean(payload?.is_premium);
+    saveDb((db) => {
+      const me = getCurrentUser(db);
+      if (!isAdmin(me)) throw new Error("Admin role required");
+      const target = db.users.find((u) => u.id === userId);
+      if (!target) throw new Error("User not found");
+      target.is_premium = isPremium;
+      target.updated_date = defaultNow();
+    });
+    return { ok: true, success: true };
+  },
+
+  async adminForceOnboarding(userId) {
+    if (!userId) throw new Error("User ID is required");
+    saveDb((db) => {
+      const me = getCurrentUser(db);
+      if (!isAdmin(me)) throw new Error("Admin role required");
+      const target = db.users.find((u) => u.id === userId);
+      if (!target) throw new Error("User not found");
+      target.onboarding_completed = false;
+      target.onboarding_required = true;
+      target.onboarding_step = "profile_photo";
+      target.tutorial_v2_step = "onboarding_pending";
+      target.tutorial_completed = false;
+      target.welcomed = false;
+      target.updated_date = defaultNow();
+    });
+    return { ok: true, success: true };
+  },
+
+  async adminClearUserContent(userId) {
+    if (!userId) throw new Error("User ID is required");
+    saveDb((db) => {
+      const me = getCurrentUser(db);
+      if (!isAdmin(me)) throw new Error("Admin role required");
+      const target = db.users.find((u) => u.id === userId);
+      if (!target) throw new Error("User not found");
+      db.interests = db.interests.filter((i) => i.user_id !== target.id);
+      db.matches = db.matches.filter((m) => m.from_user_id !== target.id && m.to_user_id !== target.id);
+      db.notifications = db.notifications.filter((n) => n.from_user_id !== target.id && n.to_user_id !== target.id);
+      target.key_interest_categories = [];
+      target.onboarding_completed = false;
+      target.onboarding_required = true;
+      target.onboarding_step = "profile_photo";
+      target.tutorial_v2_step = "onboarding_pending";
+      target.tutorial_completed = false;
+      target.welcomed = false;
+      target.updated_date = defaultNow();
+    });
+    return { ok: true, success: true };
+  },
+
+  async adminBulkClearContent() {
+    saveDb((db) => {
+      const me = getCurrentUser(db);
+      if (!isAdmin(me)) throw new Error("Admin role required");
+      db.interests = [];
+      db.matches = [];
+      db.notifications = [];
+      db.users.forEach((u) => {
+        if (isAdmin(u)) return;
+        u.key_interest_categories = [];
+        u.onboarding_completed = false;
+        u.onboarding_required = true;
+        u.onboarding_step = "profile_photo";
+        u.tutorial_v2_step = "onboarding_pending";
+        u.tutorial_completed = false;
+        u.welcomed = false;
+        u.updated_date = defaultNow();
+      });
+    });
+    return { ok: true, success: true };
+  },
+
+  async adminListLogs(kind = "app", { limit = 200, userId = "" } = {}) {
+    const db = loadDb();
+    const me = getCurrentUser(db);
+    if (!isAdmin(me)) throw new Error("Admin role required");
+    const max = Math.max(1, Math.min(1000, Number(limit || 200)));
+    const uid = String(userId || "").trim();
+    if (kind === "app") {
+      const items = (db.appLogs || []).filter((l) => !uid || String(l.user_id) === uid).slice(0, max);
+      return { ok: true, kind, items };
+    }
+    if (kind === "activity") {
+      const items = (db.activityLogs || []).filter((l) => !uid || String(l.actor_user_id) === uid || String(l.target_user_id) === uid).slice(0, max);
+      return { ok: true, kind, items };
+    }
+    if (kind === "pwdreset") {
+      const items = (db.passwordResetRequests || []).filter((l) => !uid || String(l.user_id) === uid).slice(0, max);
+      return { ok: true, kind, items };
+    }
+    throw new Error("Unknown kind. Use app|activity|pwdreset");
+  },
+
+  async adminListEvents({ limit = 200 } = {}) {
+    const db = loadDb();
+    const me = getCurrentUser(db);
+    if (!isAdmin(me)) throw new Error("Admin role required");
+    // Local mode doesn't have event stream; return empty list.
+    return { ok: true, items: [], latest_seq: 0, note: "Local mode has no server event stream." };
+  },
+
   async verifyOtp(payload = {}) {
     const email = normalizeEmail(payload?.email);
     const code = String(payload?.code || payload?.otp || "").trim();
@@ -2344,6 +2505,7 @@ const auth = {
         throw new Error("Current password is incorrect");
       }
       target.password = String(newPassword);
+      target.must_change_password = false;
       target.updated_date = defaultNow();
     });
     return { success: true };
@@ -2366,7 +2528,7 @@ const appLogs = {
   }
 };
 
-export const base44 = {
+export const mc = {
   auth,
   entities: entityHandlers,
   integrations,

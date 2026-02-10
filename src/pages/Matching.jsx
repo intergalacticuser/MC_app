@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { motion } from "framer-motion";
 import { ArrowLeft, Heart, User as UserIcon, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -26,16 +26,16 @@ export default function Matching() {
 
   const loadData = async () => {
     try {
-      const me = await base44.auth.me();
+      const me = await mc.auth.me();
       setCurrentUser(me);
       if (me.tutorial_v2_step === "matching_highlight") {
-        await base44.auth.updateMe({ tutorial_v2_step: "completed", tutorial_completed: true }).catch(() => {});
+        await mc.auth.updateMe({ tutorial_v2_step: "completed", tutorial_completed: true }).catch(() => {});
       }
 
       const [allProfiles, interests, messages] = await Promise.all([
-        base44.entities.UserProfile.list().catch(() => []),
-        base44.entities.Interest.list().catch(() => []),
-        base44.entities.Message.list().catch(() => [])
+        mc.entities.UserProfile.list().catch(() => []),
+        mc.entities.Interest.list().catch(() => []),
+        mc.entities.Message.list().catch(() => [])
       ]);
       
       const interestsList = interests || [];

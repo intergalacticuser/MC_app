@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion } from "framer-motion";
@@ -17,10 +17,10 @@ export default function Share() {
 
   const loadUser = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await mc.auth.me();
       setCurrentUser(user);
     } catch (error) {
-      base44.auth.redirectToLogin(window.location.href);
+      mc.auth.redirectToLogin(window.location.href);
     }
   };
 
@@ -41,7 +41,7 @@ export default function Share() {
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await mc.integrations.Core.UploadFile({ file });
       
       // You could create an interest with this photo or handle it differently
       alert("Photo uploaded! You can now add it to your planet.");

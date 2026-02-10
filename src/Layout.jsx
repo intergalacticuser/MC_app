@@ -3,12 +3,75 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { Home, User, Compass, Search, Heart, Coins, Bell, Mail, Shield } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import PWAMeta from "@/components/PWAMeta";
 import UserMenu from "@/components/layout/UserMenu";
 import { syncUserProfile } from "@/components/utils/syncProfile";
 import { isAdminUser } from "@/lib/admin-utils";
 import { canRunNewUserTutorial, isOnboardingComplete, shouldForceOnboarding } from "@/lib/onboarding-utils";
+
+const ONBOARDING_DISMISSED_KEY_PREFIX = "mindcircle_onboarding_dismissed_v1:";
+
+const PAGE_THEME_BACKGROUNDS = {
+  default: {
+    base: "#0B0C15",
+    image:
+      "radial-gradient(1200px circle at 20% 20%, rgba(124, 58, 237, 0.35), transparent 55%)," +
+      "radial-gradient(900px circle at 80% 30%, rgba(236, 72, 153, 0.20), transparent 60%)," +
+      "linear-gradient(135deg, rgb(30, 27, 75) 0%, rgb(88, 28, 135) 50%, rgb(131, 24, 67) 100%)"
+  },
+  nebula: {
+    base: "#0B0C15",
+    image:
+      "radial-gradient(1000px circle at 22% 18%, rgba(240, 147, 251, 0.30), transparent 55%)," +
+      "radial-gradient(900px circle at 75% 28%, rgba(245, 87, 108, 0.22), transparent 60%)," +
+      "radial-gradient(900px circle at 55% 88%, rgba(99, 102, 241, 0.16), transparent 65%)," +
+      "linear-gradient(135deg, rgb(15, 23, 42) 0%, rgb(59, 29, 79) 55%, rgb(17, 24, 39) 100%)"
+  },
+  cyberpunk: {
+    base: "#070A12",
+    image:
+      "radial-gradient(900px circle at 20% 20%, rgba(250, 112, 154, 0.28), transparent 60%)," +
+      "radial-gradient(900px circle at 78% 26%, rgba(254, 225, 64, 0.18), transparent 60%)," +
+      "radial-gradient(900px circle at 52% 88%, rgba(34, 211, 238, 0.12), transparent 70%)," +
+      "linear-gradient(135deg, rgb(7, 10, 18) 0%, rgb(63, 26, 77) 55%, rgb(7, 10, 18) 100%)"
+  },
+  zen: {
+    base: "#071024",
+    image:
+      "radial-gradient(1000px circle at 24% 20%, rgba(137, 247, 254, 0.22), transparent 58%)," +
+      "radial-gradient(1000px circle at 76% 28%, rgba(102, 166, 255, 0.20), transparent 60%)," +
+      "linear-gradient(135deg, rgb(7, 16, 36) 0%, rgb(29, 49, 93) 55%, rgb(9, 20, 46) 100%)"
+  },
+  sunset: {
+    base: "#120B14",
+    image:
+      "radial-gradient(1000px circle at 24% 18%, rgba(252, 182, 159, 0.22), transparent 60%)," +
+      "radial-gradient(900px circle at 78% 26%, rgba(255, 236, 210, 0.14), transparent 60%)," +
+      "radial-gradient(900px circle at 55% 90%, rgba(236, 72, 153, 0.10), transparent 70%)," +
+      "linear-gradient(135deg, rgb(18, 11, 20) 0%, rgb(127, 61, 46) 55%, rgb(15, 23, 42) 100%)"
+  },
+  aurora: {
+    base: "#071322",
+    image:
+      "radial-gradient(1100px circle at 18% 20%, rgba(168, 237, 234, 0.22), transparent 60%)," +
+      "radial-gradient(1100px circle at 78% 26%, rgba(254, 214, 227, 0.18), transparent 60%)," +
+      "radial-gradient(900px circle at 56% 88%, rgba(34, 197, 94, 0.10), transparent 70%)," +
+      "linear-gradient(135deg, rgb(7, 19, 34) 0%, rgb(65, 80, 99) 55%, rgb(15, 23, 42) 100%)"
+  }
+};
+
+const isImageBackground = (value = "") =>
+  typeof value === "string" && /^(https?:\/\/|data:image\/|blob:)/i.test(value);
+
+function isOnboardingDismissed(userId) {
+  if (!userId) return false;
+  try {
+    return sessionStorage.getItem(`${ONBOARDING_DISMISSED_KEY_PREFIX}${userId}`) === "1";
+  } catch {
+    return false;
+  }
+}
 
 export default function Layout({ children }) {
   const location = useLocation();
@@ -18,6 +81,7 @@ export default function Layout({ children }) {
   const mobileNavRef = React.useRef(null);
 
   const onboardingPath = createPageUrl("Onboarding");
+  const settingsPath = createPageUrl("Settings");
 
   const clearBadgeForPath = React.useCallback(async (pathname) => {
     if (!currentUser?.id) return;
@@ -31,7 +95,7 @@ export default function Layout({ children }) {
     const amount = Number(currentUser?.badges?.[section.key] || 0);
     if (amount <= 0) return;
     try {
-      await base44.auth.clearBadge(section.key);
+      await mc.auth.clearBadge(section.key);
       setCurrentUser((prev) => (
         prev
           ? {
@@ -51,7 +115,7 @@ export default function Layout({ children }) {
   const handleTabClick = React.useCallback(async (pagePath) => {
     if (pagePath === createPageUrl("Match") && currentUser?.tutorial_v2_step === "search_highlight") {
       try {
-        await base44.auth.updateMe({ tutorial_v2_step: "search_info_pending" });
+        await mc.auth.updateMe({ tutorial_v2_step: "search_info_pending" });
         setCurrentUser((prev) => (prev ? { ...prev, tutorial_v2_step: "search_info_pending" } : prev));
       } catch {
         // ignore
@@ -69,7 +133,7 @@ export default function Layout({ children }) {
   const loadUser = React.useCallback(async () => {
     try {
       const user = await Promise.race([
-        base44.auth.me(),
+        mc.auth.me(),
         new Promise((_, rej) => setTimeout(() => rej("layout_auth_timeout"), 4000))
       ]);
 
@@ -81,13 +145,13 @@ export default function Layout({ children }) {
       });
 
       if (user.coins === undefined || user.coins === null) {
-        await base44.auth.updateMe({ coins: 100 }).catch(() => {});
+        await mc.auth.updateMe({ coins: 100 }).catch(() => {});
         user.coins = 100;
         setCurrentUser((prev) => ({ ...prev, coins: 100 }));
       }
 
       if (!user.welcomed) {
-        base44.auth.updateMe({ welcomed: true }).catch(() => {});
+        mc.auth.updateMe({ welcomed: true }).catch(() => {});
       }
 
       syncUserProfile(user).catch(() => {});
@@ -95,8 +159,12 @@ export default function Layout({ children }) {
       const admin = isAdminUser(user);
       const onboardingComplete = isOnboardingComplete(user);
       if (shouldForceOnboarding(user) && location.pathname !== onboardingPath) {
+        // User can temporarily dismiss onboarding via the X button, but it must show again next login.
+        if (isOnboardingDismissed(user.id)) {
+          return;
+        }
         if (user.onboarding_completed) {
-          base44.auth.updateMe({
+          mc.auth.updateMe({
             onboarding_completed: false,
             onboarding_required: true,
             onboarding_step: "profile_photo"
@@ -106,8 +174,14 @@ export default function Layout({ children }) {
         return;
       }
 
+      // After password resets, force the user to visit Settings to set a new password.
+      if (!admin && user.must_change_password && location.pathname !== settingsPath && location.pathname !== onboardingPath) {
+        navigate(settingsPath, { replace: true });
+        return;
+      }
+
       if (!admin && onboardingComplete && !user.onboarding_completed) {
-        base44.auth.updateMe({
+        mc.auth.updateMe({
           onboarding_completed: true,
           onboarding_required: false,
           onboarding_step: "completed"
@@ -115,7 +189,7 @@ export default function Layout({ children }) {
       }
 
       if (canRunNewUserTutorial(user) && (!user.tutorial_v2_step || user.tutorial_v2_step === "onboarding_pending")) {
-        await base44.auth.updateMe({ tutorial_v2_step: "my_map_info_pending" }).catch(() => {});
+        await mc.auth.updateMe({ tutorial_v2_step: "my_map_info_pending" }).catch(() => {});
         setCurrentUser((prev) => (prev ? { ...prev, tutorial_v2_step: "my_map_info_pending" } : prev));
       }
     } catch {
@@ -142,7 +216,7 @@ export default function Layout({ children }) {
   const loadUnreadNotifications = React.useCallback(async () => {
     try {
       if (!currentUser?.id) return;
-      const notifications = await base44.entities.Notification.filter({
+      const notifications = await mc.entities.Notification.filter({
         to_user_id: currentUser.id,
         is_read: false
       });
@@ -161,7 +235,7 @@ export default function Layout({ children }) {
       Notification.requestPermission();
     }
 
-    const unsubNotifications = base44.entities.Notification.subscribe((event) => {
+    const unsubNotifications = mc.entities.Notification.subscribe((event) => {
       if (event.type === "create" && event.data.to_user_id === currentUser.id) {
         setUnreadNotifications((prev) => prev + 1);
         loadUser();
@@ -180,7 +254,7 @@ export default function Layout({ children }) {
 
     let unsubUser = () => {};
     try {
-      unsubUser = base44.entities.User.subscribe((event) => {
+      unsubUser = mc.entities.User.subscribe((event) => {
         if (event.id === currentUser.id && (event.type === "update" || event.type === "create")) {
           setCurrentUser((prev) => ({ ...prev, ...event.data }));
         }
@@ -208,9 +282,37 @@ export default function Layout({ children }) {
   const badgeMessages = Number(currentUser?.badges?.messages || 0);
   const badgeMyPlanet = Number(currentUser?.badges?.my_planet || 0);
 
+  const pageThemeId =
+    currentUser?.is_premium ? (currentUser?.premium_theme || "default") : "default";
+  const themeBg = PAGE_THEME_BACKGROUNDS[pageThemeId] || PAGE_THEME_BACKGROUNDS.default;
+
+  const hasCustomBackground = Boolean(currentUser?.is_premium && currentUser?.background_url);
+  const customBackgroundIsImage = hasCustomBackground && isImageBackground(currentUser.background_url);
+  const customBackgroundIsGradientPreset = hasCustomBackground && !customBackgroundIsImage;
+
   return (
-    <div className="min-h-[100dvh] font-sans bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 text-white transition-colors duration-300">
+    <div className="min-h-[100dvh] font-sans text-white transition-colors duration-300 relative">
       <PWAMeta />
+      <div className="fixed inset-0 -z-10">
+        <div
+          className={`absolute inset-0 ${customBackgroundIsGradientPreset ? `bg-gradient-to-br ${currentUser.background_url}` : ""}`}
+          style={
+            customBackgroundIsImage
+              ? {
+                  backgroundImage: `url(${currentUser.background_url})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat"
+                }
+              : {
+                  backgroundColor: themeBg.base,
+                  backgroundImage: themeBg.image,
+                  backgroundRepeat: "no-repeat"
+                }
+          }
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/55" />
+      </div>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
@@ -226,9 +328,11 @@ export default function Layout({ children }) {
         body {
           font-family: var(--font-sans);
           overscroll-behavior-y: none;
-          padding-bottom: env(safe-area-inset-bottom);
           -webkit-touch-callout: none;
+          /* Keep background consistent even when the page rubber-bands past the content on mobile. */
           background-color: var(--bg-deep-space);
+          background-image: none;
+          overflow-x: hidden;
         }
 
         button, nav, a, img, .select-none {
@@ -271,7 +375,7 @@ export default function Layout({ children }) {
       <nav className="hidden md:block fixed top-0 left-0 right-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 z-50" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Link to={createPageUrl("Discover")} className="flex items-center gap-3 select-none">
+            <Link to={createPageUrl("Home")} className="flex items-center gap-3 select-none">
               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                 <Compass className="w-6 h-6 text-white select-none" />
               </div>

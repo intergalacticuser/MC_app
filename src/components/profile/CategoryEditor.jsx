@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Trash2, Camera, ArrowLeft, Edit2, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import Spotlight from "@/components/tutorial/Spotlight";
 import CoinRewardPopup from "@/components/rewards/CoinRewardPopup";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CATEGORY_SUGGESTIONS as FIXED_SUBCATEGORIES, IMAGE_SUGGESTIONS as FIXED_IMAGE_SUGGESTIONS } from "./categorySuggestionsData";
+import { cosmicCoachToast } from "@/components/assistant/cosmicCoachToast";
+import { buildInterestNudgePrompt, buildInterestReflectionPrompt } from "@/lib/cosmicCoach";
 
 export default function CategoryEditor({ category, interests, userId, onClose, onSave, isFirstInterest = false }) {
   const [uploading, setUploading] = useState(false);
@@ -23,13 +25,14 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
   const [showAdditionalPhotoHint, setShowAdditionalPhotoHint] = useState(false);
   const [user, setUser] = useState(null);
   const isMobile = useIsMobile();
+  const lastCoachKeyRef = React.useRef("");
 
   useEffect(() => {
     loadUser();
   }, []);
 
   const loadUser = async () => {
-    const u = await base44.auth.me();
+    const u = await mc.auth.me();
     setUser(u);
   };
 
@@ -40,6 +43,21 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
   const [tempPhotoUrl, setTempPhotoUrl] = useState("");
   const [wizardDescription, setWizardDescription] = useState("");
 
+  const runCoach = async ({ key, prompt }) => {
+    const safeKey = String(key || "").trim();
+    if (!safeKey || !prompt) return;
+    if (lastCoachKeyRef.current === safeKey) return;
+    lastCoachKeyRef.current = safeKey;
+    try {
+      const res = await mc.integrations.Core.InvokeLLM({ prompt });
+      if (typeof res === "string" && res.trim()) {
+        cosmicCoachToast({ title: "MindCircle", text: res.trim() });
+      }
+    } catch {
+      // Coach should never block the core UX.
+    }
+  };
+
   const startAdding = (position) => {
     setActivePosition(position);
     setTempPhotoUrl("");
@@ -47,6 +65,16 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
     if (position === 0) {
       setSelectedType(category.label);
       setWizardStep('photo');
+      // Fire-and-forget coach nudge for the center concept.
+      const key = `nudge:${category?.id || ""}:${category?.label || ""}:center`;
+      const prompt = buildInterestNudgePrompt({
+        categoryId: category?.id,
+        categoryLabel: category?.label,
+        interestTitle: category?.label,
+        existingTitles: (interests || []).map((i) => i?.title).filter(Boolean),
+        userName: user?.full_name || user?.username || ""
+      });
+      void runCoach({ key, prompt });
     } else {
       setSelectedType("");
       setWizardStep('type');
@@ -56,6 +84,16 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
   const handleTypeSelect = (type) => {
     setSelectedType(type);
     setWizardStep('photo');
+    // Coach nudge right after the user picks a concept.
+    const key = `nudge:${category?.id || ""}:${String(type || "").trim().toLowerCase()}`;
+    const prompt = buildInterestNudgePrompt({
+      categoryId: category?.id,
+      categoryLabel: category?.label,
+      interestTitle: type,
+      existingTitles: (interests || []).map((i) => i?.title).filter(Boolean),
+      userName: user?.full_name || user?.username || ""
+    });
+    void runCoach({ key, prompt });
   };
 
   const handleWizardFileUpload = async (e) => {
@@ -63,7 +101,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
     if (!file) return;
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await mc.integrations.Core.UploadFile({ file });
       setTempPhotoUrl(file_url);
       setWizardStep('description');
     } catch (error) {
@@ -93,9 +131,9 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
   const handleWizardComplete = async () => {
     try {
       setUploading(true);
-      const currentUser = await base44.auth.me();
+      const currentUser = await mc.auth.me();
 
-      await base44.entities.Interest.create({
+      const created = await mc.entities.Interest.create({
         user_id: userId,
         category: category.id,
         title: selectedType,
@@ -103,6 +141,20 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
         description: wizardDescription,
         position: activePosition
       });
+
+      // If the user already wrote something, reflect back with a second coach message.
+      const initialDesc = String(wizardDescription || "").trim();
+      if (initialDesc) {
+        const key = `reflect:${created?.id || "new"}:${initialDesc.length}`;
+        const prompt = buildInterestReflectionPrompt({
+          categoryId: category?.id,
+          categoryLabel: category?.label,
+          interestTitle: selectedType,
+          userDescription: initialDesc,
+          userName: user?.full_name || user?.username || ""
+        });
+        void runCoach({ key, prompt });
+      }
 
       let coinsToAdd = 0;
       let nextTutorialV2 = currentUser.tutorial_v2_step || "";
@@ -138,7 +190,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
       if (nextTutorialV2 !== (currentUser.tutorial_v2_step || "")) {
         userUpdate.tutorial_v2_step = nextTutorialV2;
       }
-      await base44.auth.updateMe(userUpdate);
+      await mc.auth.updateMe(userUpdate);
       await loadUser();
 
       if (showReward) {
@@ -166,7 +218,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
 
   const handleDeleteInterest = async (interestId) => {
     try {
-      await base44.entities.Interest.delete(interestId);
+      await mc.entities.Interest.delete(interestId);
       await onSave();
     } catch (error) {
       console.error("Error deleting:", error);
@@ -182,19 +234,35 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
   const handleSaveDescription = async () => {
     if (!editingInterest) return;
     try {
+      const prev = String(editingInterest.description || "").trim();
+      const next = String(editDescription || "").trim();
       if (!editingInterest.description && editDescription) {
-        const currentUser = await base44.auth.me();
-        await base44.auth.updateMe({
+        const currentUser = await mc.auth.me();
+        await mc.auth.updateMe({
           coins: (currentUser.coins || 0) + 20
         });
         setShowDescriptionReward(true);
         setTimeout(() => setShowDescriptionReward(false), 3000);
         window.dispatchEvent(new Event("coins-updated"));
       }
-      await base44.entities.Interest.update(editingInterest.id, {
+      await mc.entities.Interest.update(editingInterest.id, {
         description: editDescription
       });
       await onSave();
+
+      // Coach reflection when user adds/updates their own text.
+      if (next && next !== prev) {
+        const key = `reflect:${editingInterest.id}:${next.length}`;
+        const prompt = buildInterestReflectionPrompt({
+          categoryId: category?.id,
+          categoryLabel: category?.label,
+          interestTitle: editingInterest?.title || "",
+          userDescription: next,
+          userName: user?.full_name || user?.username || ""
+        });
+        void runCoach({ key, prompt });
+      }
+
       setEditingInterest(null);
       setEditDescription("");
     } catch (error) {

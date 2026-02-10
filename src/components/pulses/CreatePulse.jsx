@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, X } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 
 const haptics = {
   light: () => navigator.vibrate && navigator.vibrate(10),
@@ -23,7 +23,7 @@ export default function CreatePulse({ user, onClose, onSuccess }) {
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
       
-      await base44.entities.Pulse.create({
+      await mc.entities.Pulse.create({
         user_id: user.id,
         text: text.trim(),
         expires_at: expiresAt.toISOString()

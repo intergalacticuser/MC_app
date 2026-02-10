@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { motion } from "framer-motion";
 import { Coins as CoinsIcon, Sparkles, CreditCard, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ export default function Coins() {
 
   const loadUser = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await mc.auth.me();
       setCurrentUser(user);
     } catch (error) {
       console.error("Error loading user:", error);
@@ -37,7 +37,7 @@ export default function Coins() {
       const totalCoins = pkg.amount + pkg.bonus;
       const newBalance = (currentUser.coins ?? 100) + totalCoins;
       
-      await base44.auth.updateMe({ coins: newBalance });
+      await mc.auth.updateMe({ coins: newBalance });
       
       setCurrentUser({ ...currentUser, coins: newBalance });
       

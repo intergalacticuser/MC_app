@@ -1,0 +1,17 @@
+{
+  "name": "MindCircle",
+  "short_name": "MindCircle",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0C15",
+  "theme_color": "#0B0C15",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "256x256",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
+

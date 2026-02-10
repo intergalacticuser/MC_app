@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { CATEGORIES_LIST } from "@/components/utils/matchingUtils";
 
 const PRESET_IMAGES = {
@@ -53,7 +53,7 @@ export default function CategoryPicker({ onClose, onSelect, usedCategories = [] 
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await mc.integrations.Core.UploadFile({ file });
       setSelectedPhoto(file_url);
     } catch (error) {
       console.error("Upload error:", error);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { motion } from "framer-motion";
 import { Sparkles, User as UserIcon } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -22,7 +22,7 @@ export default function DailyAlignment({ currentUser, allUsers, interests }) {
 
   const findDailyAlignment = async () => {
     try {
-      const messages = await base44.entities.Message.list();
+      const messages = await mc.entities.Message.list();
       const otherUsers = allUsers.filter(u => u.id !== currentUser.id);
 
       // Score users using the unified matching system

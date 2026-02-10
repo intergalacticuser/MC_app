@@ -40,9 +40,12 @@ const AuthenticatedApp = () => {
   if (!isAuthenticated) {
     return (
       <Routes>
+        {/* Public landing (no auth required) */}
+        {Pages.Home && <Route path="/" element={<Pages.Home />} />}
+        {Pages.Home && <Route path="/Home" element={<Pages.Home />} />}
         {LoginPage && <Route path="/Login" element={<LoginPage />} />}
         {PrivacyPolicyPage && <Route path="/PrivacyPolicy" element={<PrivacyPolicyPage />} />}
-        <Route path="*" element={<Navigate to="/Login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
   }

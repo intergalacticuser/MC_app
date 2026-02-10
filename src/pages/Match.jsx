@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { motion } from "framer-motion";
 import { Search, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -26,7 +26,7 @@ export default function Match() {
 
   const loadData = async () => {
     try {
-      const me = await base44.auth.me();
+      const me = await mc.auth.me();
       setCurrentUser(me);
       
       if (me.tutorial_v2_step === "search_info_pending" || me.tutorial_v2_step === "search_highlight") {
@@ -34,8 +34,8 @@ export default function Match() {
       }
       
       const [allProfiles, allInterests] = await Promise.all([
-        base44.entities.UserProfile.list().catch(() => []),
-        base44.entities.Interest.list().catch(() => [])
+        mc.entities.UserProfile.list().catch(() => []),
+        mc.entities.Interest.list().catch(() => [])
       ]);
 
       const interestsList = allInterests || [];
@@ -116,7 +116,7 @@ export default function Match() {
           <TutorialPopup 
             step={showTutorial} 
             onClose={async () => {
-               await base44.auth.updateMe({ tutorial_v2_step: "matching_highlight", tutorial_completed: false });
+               await mc.auth.updateMe({ tutorial_v2_step: "matching_highlight", tutorial_completed: false });
                setCurrentUser((prev) => (prev ? { ...prev, tutorial_v2_step: "matching_highlight" } : prev));
                setShowTutorial(null);
             }} 
@@ -153,7 +153,7 @@ export default function Match() {
               <Sparkles className="w-6 h-6 text-purple-600" />
               Select a category to search
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex flex-wrap justify-center gap-4">
               {CATEGORIES.map((category, index) => {
                 // isSelected is no longer used for rendering this component, as clicking navigates away
                 // const isSelected = selectedCategory?.id === category.id;
@@ -175,7 +175,7 @@ export default function Match() {
                     }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => navigate(`${createPageUrl("Matching")}?category=${category.id}`)}
-                    className={`relative p-6 rounded-2xl border-4 transition-all duration-300 border-transparent bg-white/50 hover:bg-white/80`}
+                    className={`relative w-full sm:w-[260px] lg:w-[240px] xl:w-[220px] p-5 xl:p-4 rounded-2xl border-4 transition-all duration-300 border-transparent bg-white/60 hover:bg-white/85`}
                     style={{
                       boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
                     }}
@@ -194,11 +194,11 @@ export default function Match() {
                     )} */}
                     <div className="relative z-10 flex flex-col items-center gap-3">
                       <div // Removed conditional animation as per outline
-                        className="text-4xl"
+                        className="text-4xl xl:text-3xl"
                       >
                         {category.icon}
                       </div>
-                      <span className="font-bold text-gray-900">{category.label}</span>
+                      <span className="font-bold text-gray-900 text-center leading-tight">{category.label}</span>
                       <span className="text-xs text-gray-500">
                         {interests.filter(i => i.category === category.id).length} interests
                       </span>

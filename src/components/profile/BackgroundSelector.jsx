@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { motion } from "framer-motion";
 import { X, Upload, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ export default function BackgroundSelector({ user, onClose, onSave }) {
 
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await mc.integrations.Core.UploadFile({ file });
       setSelectedBg(file_url);
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -35,7 +35,7 @@ export default function BackgroundSelector({ user, onClose, onSave }) {
   };
 
   const handleSave = async () => {
-    await base44.auth.updateMe({ background_url: selectedBg });
+    await mc.auth.updateMe({ background_url: selectedBg });
     await onSave();
     onClose();
   };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { Button } from "@/components/ui/button";
 import { Edit3, ImageIcon, Share2, Palette } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
@@ -77,7 +77,7 @@ export default function MyProfile() {
   const loadData = async () => {
     try {
       const currentUser = await Promise.race([
-        base44.auth.me(),
+        mc.auth.me(),
         new Promise((_, rej) => setTimeout(() => rej("auth_timeout"), 5000))
       ]);
       setUser(currentUser);
@@ -85,20 +85,20 @@ export default function MyProfile() {
       
       // Initialize coins for new users
       if (currentUser.coins === undefined || currentUser.coins === null) {
-        base44.auth.updateMe({ coins: 100 }).catch(() => {});
+        mc.auth.updateMe({ coins: 100 }).catch(() => {});
         setUser(prev => ({ ...prev, coins: 100 }));
       }
       
       const userInterests = await Promise.race([
-        base44.entities.Interest.filter({ user_id: currentUser.id }),
+        mc.entities.Interest.filter({ user_id: currentUser.id }),
         new Promise((_, rej) => setTimeout(() => rej("interests_timeout"), 5000))
       ]).catch(() => []);
       setInterests(userInterests || []);
 
       const [allProfiles, allInterests, allMessages] = await Promise.all([
-        base44.entities.UserProfile.list().catch(() => []),
-        base44.entities.Interest.list().catch(() => []),
-        base44.entities.Message.list().catch(() => [])
+        mc.entities.UserProfile.list().catch(() => []),
+        mc.entities.Interest.list().catch(() => []),
+        mc.entities.Message.list().catch(() => [])
       ]);
 
       const otherUsers = (allProfiles || [])
@@ -146,9 +146,9 @@ export default function MyProfile() {
     if (!file) return;
 
     setUploadingPhoto(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    await base44.auth.updateMe({ profile_photo: file_url });
-    const updatedUser = await base44.auth.me();
+    const { file_url } = await mc.integrations.Core.UploadFile({ file });
+    await mc.auth.updateMe({ profile_photo: file_url });
+    const updatedUser = await mc.auth.me();
     await syncUserProfile(updatedUser).catch(() => {});
     await loadData();
     setUploadingPhoto(false);
@@ -266,7 +266,7 @@ export default function MyProfile() {
             const isGuidedCategory = cat.id === FIXED_CATEGORIES[0]?.id;
             if (user?.tutorial_v2_step === "category_highlight" && isGuidedCategory) {
               try {
-                await base44.auth.updateMe({ tutorial_v2_step: "category_center_photo" });
+                await mc.auth.updateMe({ tutorial_v2_step: "category_center_photo" });
                 setUser((prev) => (prev ? { ...prev, tutorial_v2_step: "category_center_photo" } : prev));
               } catch {
                 // ignore
@@ -348,7 +348,7 @@ export default function MyProfile() {
               onClose={async () => {
                 setShowMyMapInfoPopup(false);
                 try {
-                  await base44.auth.updateMe({ tutorial_v2_step: "category_highlight" });
+                  await mc.auth.updateMe({ tutorial_v2_step: "category_highlight" });
                   setUser((prev) => (prev ? { ...prev, tutorial_v2_step: "category_highlight" } : prev));
                 } catch {
                   // ignore

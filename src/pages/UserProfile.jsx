@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { ArrowLeft, Sparkles, Lock, MessageCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -31,10 +31,10 @@ export default function UserProfile() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const me = await base44.auth.me();
+        const me = await mc.auth.me();
         setCurrentUser(me);
 
-        const profiles = await base44.entities.UserProfile.filter({ user_id: userId }).catch(() => []);
+        const profiles = await mc.entities.UserProfile.filter({ user_id: userId }).catch(() => []);
         const p = profiles[0];
         if (!p) {
           setLoading(false);
@@ -60,7 +60,7 @@ export default function UserProfile() {
         setUser(foundUser);
 
         if (me.id !== foundUser.id) {
-          base44.auth.recordProfileView(foundUser.id).catch(() => {});
+          mc.auth.recordProfileView(foundUser.id).catch(() => {});
         }
 
         // Check blocking status
@@ -69,9 +69,9 @@ export default function UserProfile() {
         setIsBlocked(Boolean(isBlockedByMe || amIBlocked));
 
         const [userInterests, allInterests, allMessages] = await Promise.all([
-          base44.entities.Interest.filter({ user_id: userId }).catch(() => []),
-          base44.entities.Interest.list().catch(() => []),
-          base44.entities.Message.list().catch(() => [])
+          mc.entities.Interest.filter({ user_id: userId }).catch(() => []),
+          mc.entities.Interest.list().catch(() => []),
+          mc.entities.Message.list().catch(() => [])
         ]);
 
         setInterests(userInterests || []);
@@ -122,17 +122,17 @@ export default function UserProfile() {
 
     try {
       // Deduct coins on server
-      await base44.auth.updateMe({ coins: currentCoins - cost });
+      await mc.auth.updateMe({ coins: currentCoins - cost });
       
       // Create stardust record
-      await base44.entities.Stardust.create({
+      await mc.entities.Stardust.create({
         from_user_id: currentUser.id,
         to_user_id: userId,
         type: "profile"
       });
 
       // Create notification
-      await base44.entities.Notification.create({
+      await mc.entities.Notification.create({
         type: "like",
         from_user_id: currentUser.id,
         to_user_id: userId,
@@ -176,8 +176,8 @@ export default function UserProfile() {
       const currentBlocked = currentUser.blocked_users || [];
       const newBlocked = [...currentBlocked, user.id];
       
-      await base44.auth.updateMe({ blocked_users: newBlocked });
-      const updatedMe = await base44.auth.me();
+      await mc.auth.updateMe({ blocked_users: newBlocked });
+      const updatedMe = await mc.auth.me();
       await syncUserProfile(updatedMe).catch(() => {});
       alert("User blocked");
       window.location.href = createPageUrl("Discover");
@@ -415,7 +415,7 @@ export default function UserProfile() {
               const catInterests = interests.filter(i => i.category === cat.id);
               if (catInterests.length > 0) {
                 if (currentUser?.id !== user?.id) {
-                  base44.auth.recordProfileInteraction(user.id, cat.id).catch(() => {});
+                  mc.auth.recordProfileInteraction(user.id, cat.id).catch(() => {});
                 }
                 setSelectedCategory(cat);
               }

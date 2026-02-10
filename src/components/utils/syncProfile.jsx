@@ -1,4 +1,4 @@
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 
 /**
  * Syncs the current user's data to the public UserProfile entity.
@@ -6,7 +6,7 @@ import { base44 } from "@/api/base44Client";
  * 
  * IMPORTANT: Each user must create their own UserProfile record so that
  * created_by matches their own email. Otherwise other users won't see it
- * due to Base44's default security rules.
+ * due to MindCircle's visibility rules (profiles are public but ownership metadata must be correct).
  */
 export async function syncUserProfile(user) {
   if (!user || !user.id) return;
@@ -33,7 +33,7 @@ export async function syncUserProfile(user) {
   };
 
   // Check if profile already exists for this user
-  const existing = await base44.entities.UserProfile.filter({ user_id: user.id });
+  const existing = await mc.entities.UserProfile.filter({ user_id: user.id });
 
   if (existing.length > 0) {
     // Check if created_by matches current user's email
@@ -43,22 +43,22 @@ export async function syncUserProfile(user) {
     
     if (myRecord) {
       // Update existing record that belongs to this user
-      await base44.entities.UserProfile.update(myRecord.id, profileData);
+      await mc.entities.UserProfile.update(myRecord.id, profileData);
       
       // Clean up any duplicates
       const duplicates = existing.filter(e => e.id !== myRecord.id);
       for (const dup of duplicates) {
-        await base44.entities.UserProfile.delete(dup.id).catch(() => {});
+        await mc.entities.UserProfile.delete(dup.id).catch(() => {});
       }
     } else {
       // Records exist but were created by someone else (e.g. admin)
       // Delete them and create a new one as the current user
       for (const old of existing) {
-        await base44.entities.UserProfile.delete(old.id).catch(() => {});
+        await mc.entities.UserProfile.delete(old.id).catch(() => {});
       }
-      await base44.entities.UserProfile.create(profileData);
+      await mc.entities.UserProfile.create(profileData);
     }
   } else {
-    await base44.entities.UserProfile.create(profileData);
+    await mc.entities.UserProfile.create(profileData);
   }
 }

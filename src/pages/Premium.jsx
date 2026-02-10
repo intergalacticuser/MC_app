@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { motion } from "framer-motion";
 import { Crown, Check, Zap, Eye, Search, Heart, Sparkles, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -64,11 +64,11 @@ export default function Premium() {
 
   const loadData = async () => {
     try {
-      const user = await base44.auth.me();
+      const user = await mc.auth.me();
       setCurrentUser(user);
 
       if (user.is_premium) {
-        const subs = await base44.entities.Subscription.filter({
+        const subs = await mc.entities.Subscription.filter({
           user_id: user.id,
           status: "active"
         });
@@ -96,7 +96,7 @@ export default function Premium() {
         expiresAt.setFullYear(expiresAt.getFullYear() + 1);
       }
 
-      await base44.entities.Subscription.create({
+      await mc.entities.Subscription.create({
         user_id: currentUser.id,
         plan_type: plan.type,
         started_at: now.toISOString(),
@@ -105,12 +105,12 @@ export default function Premium() {
         auto_renew: true
       });
 
-      await base44.auth.updateMe({
+      await mc.auth.updateMe({
         is_premium: true,
         premium_expires_at: expiresAt.toISOString(),
         coins: (currentUser.coins || 0) - Math.round(plan.price * 100)
       });
-      const updatedUser = await base44.auth.me();
+      const updatedUser = await mc.auth.me();
       await syncUserProfile(updatedUser).catch(() => {});
 
       alert(`Successfully subscribed to ${plan.duration} plan!`);
@@ -127,16 +127,16 @@ export default function Premium() {
 
     try {
       if (subscription) {
-        await base44.entities.Subscription.update(subscription.id, {
+        await mc.entities.Subscription.update(subscription.id, {
           status: "cancelled"
         });
       }
 
-      await base44.auth.updateMe({
+      await mc.auth.updateMe({
         is_premium: false,
         premium_theme: "default"
       });
-      const updatedUser = await base44.auth.me();
+      const updatedUser = await mc.auth.me();
       await syncUserProfile(updatedUser).catch(() => {});
 
       alert("Premium subscription cancelled");

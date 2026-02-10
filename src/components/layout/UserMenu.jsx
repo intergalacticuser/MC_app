@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { User as UserIcon, Settings, Coins, LogOut, Shield, Crown } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { isAdminUser } from "@/lib/admin-utils";
 
 export default function UserMenu({ user, openUp = false, buttonClassName = "" }) {
@@ -26,7 +26,7 @@ export default function UserMenu({ user, openUp = false, buttonClassName = "" })
   }, []);
 
   const handleLogout = async () => {
-    await base44.auth.logout(createPageUrl("Login"));
+    await mc.auth.logout(createPageUrl("Login"));
   };
 
   return (

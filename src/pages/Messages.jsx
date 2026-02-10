@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { motion } from "framer-motion";
 import { Send, Lock, User as UserIcon, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,13 +58,13 @@ export default function Messages() {
 
   const loadData = async () => {
     try {
-      const me = await base44.auth.me();
+      const me = await mc.auth.me();
       setCurrentUser(me);
 
       const [profiles, msgs, ints] = await Promise.all([
-        base44.entities.UserProfile.list().catch(() => []),
-        base44.entities.Message.list().catch(() => []),
-        base44.entities.Interest.list().catch(() => [])
+        mc.entities.UserProfile.list().catch(() => []),
+        mc.entities.Message.list().catch(() => []),
+        mc.entities.Interest.list().catch(() => [])
       ]);
 
       const users = (profiles || []).map(p => ({
@@ -122,7 +122,7 @@ export default function Messages() {
     // Mark as read
     userMessages.forEach(msg => {
       if (msg.to_user_id === currentUser.id && !msg.is_read) {
-        base44.entities.Message.update(msg.id, { is_read: true });
+        mc.entities.Message.update(msg.id, { is_read: true });
       }
     });
   };
@@ -139,14 +139,14 @@ export default function Messages() {
 
     setSending(true);
     try {
-      const newMessage = await base44.entities.Message.create({
+      const newMessage = await mc.entities.Message.create({
         from_user_id: currentUser.id,
         to_user_id: selectedUserId,
         text: messageText,
         is_read: false
       });
 
-      await base44.entities.Notification.create({
+      await mc.entities.Notification.create({
         type: "message",
         from_user_id: currentUser.id,
         to_user_id: selectedUserId,

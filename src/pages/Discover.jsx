@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -57,9 +57,9 @@ export default function Discover() {
        let allInterests = [];
        let messages = [];
 
-       try { allProfiles = await base44.entities.UserProfile.list() || []; console.log("Discover: loaded profiles:", allProfiles.length); } catch(e) { console.error("Failed to load profiles:", e); }
-       try { allInterests = await base44.entities.Interest.list() || []; console.log("Discover: loaded interests:", allInterests.length); } catch(e) { console.error("Failed to load interests:", e); }
-       try { messages = await base44.entities.Message.list() || []; console.log("Discover: loaded messages:", messages.length); } catch(e) { console.error("Failed to load messages:", e); }
+       try { allProfiles = await mc.entities.UserProfile.list() || []; console.log("Discover: loaded profiles:", allProfiles.length); } catch(e) { console.error("Failed to load profiles:", e); }
+       try { allInterests = await mc.entities.Interest.list() || []; console.log("Discover: loaded interests:", allInterests.length); } catch(e) { console.error("Failed to load interests:", e); }
+       try { messages = await mc.entities.Message.list() || []; console.log("Discover: loaded messages:", messages.length); } catch(e) { console.error("Failed to load messages:", e); }
 
        const interestsMap = {};
        allInterests.forEach(interest => {
@@ -105,7 +105,7 @@ export default function Discover() {
        setSwipeStack(usersWithScores);
        setUserInterests(interestsMap);
        setDailyHighlight(me?.daily_highlight || null);
-       base44.auth.trackSearchImpressions(allUsers.map((item) => item.id)).catch(() => {});
+       mc.auth.trackSearchImpressions(allUsers.map((item) => item.id)).catch(() => {});
     } catch (error) {
        console.error("Error loading discover data:", error);
     } finally {
@@ -125,7 +125,7 @@ export default function Discover() {
     try {
       // Check daily orbit limit
       const today = new Date().toISOString().split('T')[0];
-      const todayMatches = await base44.entities.Match.filter({
+      const todayMatches = await mc.entities.Match.filter({
         from_user_id: currentUser.id,
         created_date: { $gte: `${today}T00:00:00Z` }
       });
@@ -137,14 +137,14 @@ export default function Discover() {
       }
       
       // Create match record
-      await base44.entities.Match.create({
+      await mc.entities.Match.create({
         from_user_id: currentUser.id,
         to_user_id: user.id,
         is_super_nova: false
       });
       
       // Create notification
-      await base44.entities.Notification.create({
+      await mc.entities.Notification.create({
         type: "match",
         from_user_id: currentUser.id,
         to_user_id: user.id,
@@ -161,7 +161,7 @@ export default function Discover() {
     try {
       const now = new Date().toISOString();
       const allPulses = await Promise.race([
-        base44.entities.Pulse.filter({ expires_at: { $gte: now } }, "-created_date", 20),
+        mc.entities.Pulse.filter({ expires_at: { $gte: now } }, "-created_date", 20),
         new Promise((_, rej) => setTimeout(() => rej("pulse_timeout"), 5000))
       ]).catch(() => []);
       
@@ -180,7 +180,7 @@ export default function Discover() {
     const init = async () => {
       let me;
       try {
-        me = await base44.auth.me();
+        me = await mc.auth.me();
       } catch (e) {
         console.error("Discover: auth.me() failed", e);
         setLoading(false);

@@ -1,7 +1,17 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { mc } from '@/api/mcClient';
 
 const AuthContext = createContext();
+const ONBOARDING_DISMISSED_KEY_PREFIX = "mindcircle_onboarding_dismissed_v1:";
+
+function clearOnboardingDismissal(userId) {
+  if (!userId) return;
+  try {
+    sessionStorage.removeItem(`${ONBOARDING_DISMISSED_KEY_PREFIX}${userId}`);
+  } catch {
+    // ignore
+  }
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -22,7 +32,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoadingAuth(true);
       setAuthError(null);
-      const currentUser = await base44.auth.me();
+      const currentUser = await mc.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
     } catch (error) {
@@ -38,18 +48,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = (shouldRedirect = true) => {
+    clearOnboardingDismissal(user?.id);
     setUser(null);
     setIsAuthenticated(false);
     
     if (shouldRedirect) {
-      base44.auth.logout('/Login');
+      mc.auth.logout('/Login');
     } else {
-      base44.auth.logout();
+      mc.auth.logout();
     }
   };
 
   const navigateToLogin = () => {
-    base44.auth.redirectToLogin();
+    mc.auth.redirectToLogin();
   };
 
   return (

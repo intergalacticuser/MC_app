@@ -1,6 +1,6 @@
 # MindCircle (Local-First)
 
-This project now runs fully local and does not depend on Base44 services.
+This project runs fully local-first and does not depend on any third-party backend services.
 
 ## Run locally
 
@@ -29,9 +29,10 @@ No `.env` setup is required for the local mode.
 - Build verification:
   `npm run build`
 
-## GitHub Pages
+## GitHub Pages (Deprecated)
 
-This repo is preconfigured for Pages deploy via GitHub Actions:
+This repo previously supported Pages deploy via GitHub Actions, but it is deprecated for this project
+because Pages cannot provide a shared backend database.
 - workflow: `/Users/dan/Downloads/mind-circle-b40edb4e-4/.github/workflows/deploy-pages.yml`
 - deploy branch trigger: `main`
 - Pages build mode:
@@ -44,12 +45,14 @@ After pushing to GitHub:
 3. Push to `main` (or run workflow manually).
 4. App URL will be: `https://intergalacticuser.github.io/MC_app/`
 
-## VPS Deployment (Recommended for shared server DB)
+## VPS Deployment (Recommended)
 
 Use the built-in Node production server:
 - serves `dist/`
-- exposes shared DB endpoint `/__mindcircle/local-db`
 - persists DB file on server (`data/mindcircle-shared-db.json`)
+
+Note: the legacy shared DB endpoint is for internal demos only. For a real production deployment,
+use authenticated `/api/*` endpoints.
 
 Local commands before deploy:
 1. `npm run build`
@@ -59,6 +62,17 @@ Production environment variables:
 - `PORT` (default `80`)
 - `HOST` (default `0.0.0.0`)
 - `DATA_DIR` (default `./data`)
+- `MC_LLM_PROVIDER` (default `stub`, set to `ollama` to enable local Ollama)
+- `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`)
+- `OLLAMA_MODEL` (default `llama3.2:3b-instruct-q4_K_M`)
+- `OLLAMA_TIMEOUT_MS` (default `30000`)
+
+LLM health check (requires auth cookie session):
+- `GET /api/integrations/llm/health`
+
+VPS start scripts:
+- `./server/bin/run-prod.sh` (loads optional `./.env`, sets sane defaults for Ollama)
+- `./server/bin/run-prod-screen.sh` (runs `run-prod.sh` inside a detached `screen` session)
 
 ## Local data storage
 

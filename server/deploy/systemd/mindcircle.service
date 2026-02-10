@@ -1,0 +1,19 @@
+[Unit]
+Description=MindCircle Server
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mind-circle
+EnvironmentFile=-/etc/mindcircle.env
+ExecStart=/usr/bin/node /opt/mind-circle/server/index.mjs
+Restart=always
+RestartSec=2
+
+# Security hardening (adjust if you need uploads or other write paths)
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+

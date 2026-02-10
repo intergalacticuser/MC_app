@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { Settings as SettingsIcon, Phone, Mail, CreditCard, Save, LogOut, Trash2, User, RotateCcw } from "lucide-react";
+import { Settings as SettingsIcon, Phone, Mail, CreditCard, Save, LogOut, Trash2, User, RotateCcw, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { syncUserProfile } from "@/components/utils/syncProfile";
@@ -21,6 +21,10 @@ export default function Settings() {
   const [blockedUsersList, setBlockedUsersList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
   useEffect(() => {
     loadData();
@@ -28,7 +32,7 @@ export default function Settings() {
 
   const loadData = async () => {
     try {
-      const currentUser = await base44.auth.me();
+      const currentUser = await mc.auth.me();
       setUser(currentUser);
       setFullName(currentUser.full_name || "");
       setEmail(currentUser.email || "");
@@ -40,7 +44,7 @@ export default function Settings() {
       if (currentUser.blocked_users && currentUser.blocked_users.length > 0) {
         const blocked = await Promise.all(
           currentUser.blocked_users.map(async (id) => {
-            const profiles = await base44.entities.UserProfile.filter({ user_id: id }).catch(() => []);
+            const profiles = await mc.entities.UserProfile.filter({ user_id: id }).catch(() => []);
             const profile = profiles[0];
             if (!profile) return null;
             return {
@@ -55,7 +59,7 @@ export default function Settings() {
         setBlockedUsersList([]);
       }
     } catch (error) {
-      base44.auth.redirectToLogin(window.location.href);
+      mc.auth.redirectToLogin(window.location.href);
     }
     setLoading(false);
   };
@@ -69,13 +73,13 @@ export default function Settings() {
 
     setSaving(true);
     try {
-      await base44.auth.updateMe({
+      await mc.auth.updateMe({
         full_name: safeFullName,
         phone,
         payment_method: paymentMethod
       });
 
-      const updatedUser = await base44.auth.me();
+      const updatedUser = await mc.auth.me();
       setUser(updatedUser);
       setFullName(updatedUser.full_name || safeFullName);
       await syncUserProfile(updatedUser).catch(() => {});
@@ -102,7 +106,40 @@ export default function Settings() {
   };
 
   const handleLogout = async () => {
-    await base44.auth.logout(createPageUrl("Login"));
+    await mc.auth.logout(createPageUrl("Login"));
+  };
+
+  const handleChangePassword = async () => {
+    if (!user?.id) return;
+    if (!currentPassword.trim() || !newPassword.trim()) {
+      alert("Enter current password and a new password");
+      return;
+    }
+    if (newPassword.trim().length < 8) {
+      alert("New password must be at least 8 characters");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      alert("New passwords do not match");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      await mc.auth.changePassword({
+        userId: user.id,
+        currentPassword,
+        newPassword
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      alert("Password updated");
+    } catch (error) {
+      alert(error?.message || "Failed to change password");
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -117,7 +154,7 @@ export default function Settings() {
     if (!doubleConfirm) return;
 
     try {
-      await base44.auth.deleteMe();
+      await mc.auth.deleteMe();
     } catch (error) {
       alert("Failed to delete account");
     }
@@ -126,9 +163,9 @@ export default function Settings() {
   const handleUnblock = async (userIdToUnblock) => {
     try {
       const newBlockedList = user.blocked_users.filter(id => id !== userIdToUnblock);
-      await base44.auth.updateMe({ blocked_users: newBlockedList });
+      await mc.auth.updateMe({ blocked_users: newBlockedList });
 
-      const updatedUser = await base44.auth.me();
+      const updatedUser = await mc.auth.me();
       setUser(updatedUser);
       await syncUserProfile(updatedUser).catch(() => {});
       setBlockedUsersList(prev => prev.filter(u => u.id !== userIdToUnblock));
@@ -256,6 +293,71 @@ export default function Settings() {
             )}
           </Button>
         </motion.div>
+
+        {/* Password */}
+        {String(user?.auth_provider || "email").toLowerCase() === "email" && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.16 }}
+            className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-xl mt-6"
+          >
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Password</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                  <Lock className="w-4 h-4" />
+                  Current password
+                </label>
+                <Input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 block">
+                    New password
+                  </label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    autoComplete="new-password"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 block">
+                    Confirm new password
+                  </label>
+                  <Input
+                    type="password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="Repeat new password"
+                    className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+
+              <Button
+                onClick={handleChangePassword}
+                disabled={changingPassword}
+                className="w-full bg-gradient-to-r from-slate-800 to-slate-950 hover:shadow-lg transition-all"
+              >
+                {changingPassword ? "Updating..." : "Change password"}
+              </Button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Onboarding tips */}
         <motion.div

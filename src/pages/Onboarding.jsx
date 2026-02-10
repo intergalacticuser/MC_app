@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Upload, CheckCircle2, Sparkles } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { Upload, CheckCircle2, Sparkles, X } from "lucide-react";
+import { mc } from "@/api/mcClient";
 import { createPageUrl } from "@/utils";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,16 @@ import { isOnboardingComplete } from "@/lib/onboarding-utils";
 import { CATEGORIES_LIST } from "@/components/utils/matchingUtils";
 
 const KEY_CATEGORIES = CATEGORIES_LIST;
+const ONBOARDING_DISMISSED_KEY_PREFIX = "mindcircle_onboarding_dismissed_v1:";
+
+function markOnboardingDismissed(userId) {
+  if (!userId) return;
+  try {
+    sessionStorage.setItem(`${ONBOARDING_DISMISSED_KEY_PREFIX}${userId}`, "1");
+  } catch {
+    // ignore
+  }
+}
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -24,10 +34,10 @@ export default function Onboarding() {
   React.useEffect(() => {
     const init = async () => {
       try {
-        const me = await base44.auth.me();
+        const me = await mc.auth.me();
         if (isOnboardingComplete(me)) {
           if (!me.onboarding_completed) {
-            await base44.auth.updateMe({
+            await mc.auth.updateMe({
               onboarding_completed: true,
               onboarding_required: false,
               onboarding_step: "completed"
@@ -54,12 +64,12 @@ export default function Onboarding() {
 
     setSaving(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      await base44.auth.updateMe({
+      const { file_url } = await mc.integrations.Core.UploadFile({ file });
+      await mc.auth.updateMe({
         profile_photo: file_url,
         onboarding_step: "profile_photo_done"
       });
-      const refreshed = await base44.auth.me();
+      const refreshed = await mc.auth.me();
       setUser(refreshed);
     } finally {
       setSaving(false);
@@ -79,7 +89,7 @@ export default function Onboarding() {
     if (!canGoNextFromStep2 || !user?.profile_photo) return;
     setSaving(true);
     try {
-      await base44.auth.updateMe({
+      await mc.auth.updateMe({
         bio: bio.trim(),
         key_interest_categories: selectedCategories,
         onboarding_completed: true,
@@ -88,7 +98,7 @@ export default function Onboarding() {
         tutorial_v2_step: "my_map_info_pending",
         tutorial_completed: false
       });
-      const updated = await base44.auth.me();
+      const updated = await mc.auth.me();
       await syncUserProfile(updated).catch(() => {});
       navigate(createPageUrl("MyProfile"), { replace: true });
     } finally {
@@ -112,6 +122,21 @@ export default function Onboarding() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white/95 rounded-3xl p-8 shadow-2xl"
         >
+          <div className="flex justify-end -mt-2 -mr-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (user?.id) markOnboardingDismissed(user.id);
+                navigate(createPageUrl("MyProfile"));
+              }}
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 text-gray-700 transition-colors"
+              aria-label="Close onboarding"
+              title="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 rounded-full bg-indigo-100 px-4 py-2 mb-4">
               <Sparkles className="w-4 h-4 text-indigo-700" />
@@ -178,7 +203,7 @@ export default function Onboarding() {
                 <p className="text-sm text-gray-600">Select at least 3 categories to continue.</p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="flex flex-wrap justify-center gap-3">
                 {KEY_CATEGORIES.map((category) => {
                   const active = selectedCategories.includes(category.id);
                   return (
@@ -186,7 +211,7 @@ export default function Onboarding() {
                       key={category.id}
                       type="button"
                       onClick={() => toggleCategory(category.id)}
-                      className={`rounded-2xl border px-3 py-4 text-left transition-colors ${
+                      className={`w-full sm:w-[230px] md:w-[220px] rounded-2xl border px-3 py-4 text-left transition-colors ${
                         active ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white hover:bg-gray-50"
                       }`}
                     >

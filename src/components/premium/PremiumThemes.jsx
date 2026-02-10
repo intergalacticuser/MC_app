@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { X, Check, Lock } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { createPageUrl } from "@/utils";
 
 const THEMES = [
@@ -70,7 +70,7 @@ export default function PremiumThemes({ user, onClose, onSave }) {
 
     setPurchasing(true);
     try {
-      await base44.auth.updateMe({
+      await mc.auth.updateMe({
         coins: (user.coins || 100) - theme.price,
         premium_theme: theme.id,
         owned_themes: [...(user.owned_themes || ["default"]), theme.id]
@@ -88,7 +88,7 @@ export default function PremiumThemes({ user, onClose, onSave }) {
       redirectToPremium();
       return;
     }
-    await base44.auth.updateMe({ premium_theme: selectedTheme });
+    await mc.auth.updateMe({ premium_theme: selectedTheme });
     await onSave();
     onClose();
   };

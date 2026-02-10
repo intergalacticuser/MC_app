@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { motion } from "framer-motion";
@@ -18,15 +18,15 @@ export default function Notifications() {
 
   const loadData = async () => {
     try {
-      const me = await base44.auth.me();
+      const me = await mc.auth.me();
       setCurrentUser(me);
 
       const [allNotifications, allProfiles] = await Promise.all([
-        base44.entities.Notification.filter(
+        mc.entities.Notification.filter(
           { to_user_id: me.id },
           "-created_date"
         ).catch(() => []),
-        base44.entities.UserProfile.list().catch(() => [])
+        mc.entities.UserProfile.list().catch(() => [])
       ]);
       
       const usersMap = {};
@@ -49,7 +49,7 @@ export default function Notifications() {
 
   const markAsRead = async (notificationId) => {
     try {
-      await base44.entities.Notification.update(notificationId, { is_read: true });
+      await mc.entities.Notification.update(notificationId, { is_read: true });
       setNotifications(notifications.map(n => 
         n.id === notificationId ? { ...n, is_read: true } : n
       ));
@@ -62,7 +62,7 @@ export default function Notifications() {
     try {
       const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
       await Promise.all(unreadIds.map(id => 
-        base44.entities.Notification.update(id, { is_read: true })
+        mc.entities.Notification.update(id, { is_read: true })
       ));
       setNotifications(notifications.map(n => ({ ...n, is_read: true })));
     } catch (error) {

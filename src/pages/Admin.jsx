@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { base44 } from "@/api/base44Client";
+import { motion, AnimatePresence } from "framer-motion";
+import { mc } from "@/api/mcClient";
 import { createPageUrl } from "@/utils";
 import { isAdminUser } from "@/lib/admin-utils";
 import { Button } from "@/components/ui/button";
@@ -16,13 +16,26 @@ import {
   Crown,
   MessageCircle,
   Link2,
-  LogIn
+  LogIn,
+  Coins,
+  KeyRound,
+  Trash2,
+  Wand2,
+  Activity
 } from "lucide-react";
 
 const defaultInviteState = {
   email: "",
   role: "user"
 };
+
+const ADMIN_OUTLINE_BUTTON =
+  "border-gray-200 bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900 shadow-sm";
+
+function clampInt(value, fallback = 0) {
+  const n = Number(String(value ?? "").trim());
+  return Number.isFinite(n) ? Math.trunc(n) : fallback;
+}
 
 function parseCsvRows(csvText = "") {
   const rows = [];
@@ -157,6 +170,14 @@ export default function Admin() {
   const [rows, setRows] = React.useState([]);
   const [canManageAccounts, setCanManageAccounts] = React.useState(false);
   const [actionUserId, setActionUserId] = React.useState(null);
+  const [manageUser, setManageUser] = React.useState(null);
+  const [coinsDelta, setCoinsDelta] = React.useState(50);
+  const [passwordMode, setPasswordMode] = React.useState("welcome");
+  const [logsTab, setLogsTab] = React.useState("app");
+  const [logsLoading, setLogsLoading] = React.useState(false);
+  const [logsItems, setLogsItems] = React.useState([]);
+  const [eventsLoading, setEventsLoading] = React.useState(false);
+  const [eventsItems, setEventsItems] = React.useState([]);
 
   const [searchTerm, setSearchTerm] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState("all");
@@ -169,7 +190,7 @@ export default function Admin() {
   const [importPayload, setImportPayload] = React.useState("");
   const [importingUsers, setImportingUsers] = React.useState(false);
   const [importResult, setImportResult] = React.useState(null);
-  const localAdminCredentials = base44.getLocalAdminCredentials?.();
+  const localAdminCredentials = mc.getLocalAdminCredentials?.();
 
   const loadAdminData = React.useCallback(async (isSoftReload = false) => {
     if (isSoftReload) setIsReloading(true);
@@ -177,7 +198,7 @@ export default function Admin() {
     setError("");
 
     try {
-      const me = await base44.auth.me();
+      const me = await mc.auth.me();
       setCurrentUser(me);
 
       if (!isAdminUser(me)) {
@@ -196,13 +217,13 @@ export default function Admin() {
         subscriptions,
         invites
       ] = await Promise.all([
-        base44.entities.User.list().catch(() => null),
-        base44.entities.UserProfile.list().catch(() => []),
-        base44.entities.Interest.list().catch(() => []),
-        base44.entities.Message.list().catch(() => []),
-        base44.entities.Match.list().catch(() => []),
-        base44.entities.Subscription.filter({ status: "active" }).catch(() => []),
-        base44.entities.Invite.list("-created_date", 50).catch(() => [])
+        mc.entities.User.list().catch(() => null),
+        mc.entities.UserProfile.list().catch(() => []),
+        mc.entities.Interest.list().catch(() => []),
+        mc.entities.Message.list().catch(() => []),
+        mc.entities.Match.list().catch(() => []),
+        mc.entities.Subscription.filter({ status: "active" }).catch(() => []),
+        mc.entities.Invite.list("-created_date", 50).catch(() => [])
       ]);
 
       const hasUserEntityAccess = Array.isArray(appUsers);
@@ -259,6 +280,7 @@ export default function Admin() {
           disabled: !!appUser?.disabled,
           onboarding_completed: !!(profile?.onboarding_completed || appUser?.onboarding_completed),
           is_premium: !!(appUser?.is_premium || profile?.is_premium || activeSubUsers.has(id)),
+          coins: Number.isFinite(Number(appUser?.coins)) ? Number(appUser.coins) : 0,
           interests: interestCount[id] || 0,
           messages: messageCount[id] || 0,
           matches: matchCount[id] || 0,
@@ -316,7 +338,7 @@ export default function Admin() {
   }, [rows]);
 
   const sendInvite = async (email, role) => {
-    await base44.auth.inviteUser(email, role);
+    await mc.auth.inviteUser(email, role);
     await loadAdminData(true);
   };
 
@@ -368,7 +390,7 @@ export default function Admin() {
 
     setImportingUsers(true);
     try {
-      const result = await base44.auth.importUsers(parsed);
+      const result = await mc.auth.importUsers(parsed);
       setImportResult(result);
       await loadAdminData(true);
       alert(`Import complete. Created: ${result.created}, updated: ${result.updated}, interests: ${result.importedInterests}`);
@@ -387,7 +409,7 @@ export default function Admin() {
     try {
       const csvText = await file.text();
       const payload = csvToImportPayload(csvText);
-      const result = await base44.auth.importUsers(payload);
+      const result = await mc.auth.importUsers(payload);
       setImportResult(result);
       await loadAdminData(true);
       alert(`CSV import complete. Created: ${result.created}, updated: ${result.updated}`);
@@ -403,7 +425,7 @@ export default function Admin() {
     if (!canManageAccounts) return;
     setActionUserId(userId);
     try {
-      await base44.entities.User.update(userId, { role: nextRole });
+      await mc.entities.User.update(userId, { role: nextRole });
       await loadAdminData(true);
     } catch (updateError) {
       alert(`Role update failed: ${extractErrorMessage(updateError)}`);
@@ -421,7 +443,7 @@ export default function Admin() {
 
     setActionUserId(user.id);
     try {
-      await base44.entities.User.update(user.id, { disabled: !user.disabled });
+      await mc.entities.User.update(user.id, { disabled: !user.disabled });
       await loadAdminData(true);
     } catch (updateError) {
       alert(`Status update failed: ${extractErrorMessage(updateError)}`);
@@ -434,12 +456,139 @@ export default function Admin() {
     if (user.id === currentUser?.id) return;
     setActionUserId(user.id);
     try {
-      await base44.auth.assumeUser(user.id);
+      await mc.auth.assumeUser(user.id);
       window.location.href = createPageUrl("Discover");
     } catch (switchError) {
       alert(`Switch user failed: ${extractErrorMessage(switchError)}`);
     } finally {
       setActionUserId(null);
+    }
+  };
+
+  const refreshLogs = React.useCallback(async () => {
+    if (!mc?.auth?.adminListLogs) return;
+    setLogsLoading(true);
+    try {
+      const res = await mc.auth.adminListLogs(logsTab, { limit: 200 });
+      setLogsItems(Array.isArray(res?.items) ? res.items : []);
+    } catch (e) {
+      // keep logs optional
+      setLogsItems([]);
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [logsTab]);
+
+  const refreshEvents = React.useCallback(async () => {
+    if (!mc?.auth?.adminListEvents) return;
+    setEventsLoading(true);
+    try {
+      const res = await mc.auth.adminListEvents({ limit: 250 });
+      setEventsItems(Array.isArray(res?.items) ? res.items : []);
+    } catch {
+      setEventsItems([]);
+    } finally {
+      setEventsLoading(false);
+    }
+  }, []);
+
+  const handleResetPassword = async (user) => {
+    if (!user?.id) return;
+    if (!confirm(`Reset password for ${user.full_name} (${user.email})?`)) return;
+    setActionUserId(user.id);
+    try {
+      const password = passwordMode === "welcome" ? "welcome12345" : "";
+      const res = await mc.auth.adminResetPassword(user.id, {
+        password,
+        require_change: true,
+        return_password: true
+      });
+      const temp = String(res?.temp_password || "").trim();
+      if (temp) {
+        alert(`Temporary password set:\n\n${temp}\n\nUser will be forced to change it after login.`);
+      } else {
+        alert("Password was reset.");
+      }
+      await loadAdminData(true);
+    } catch (e) {
+      alert(`Reset password failed: ${extractErrorMessage(e)}`);
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
+  const handleAdjustCoins = async (user, deltaRaw) => {
+    if (!user?.id) return;
+    const delta = clampInt(deltaRaw, 0);
+    if (!delta) return;
+    const signed = deltaRaw < 0 ? -Math.abs(delta) : Math.abs(delta);
+    if (!confirm(`Adjust coins for ${user.full_name} by ${signed}?`)) return;
+    setActionUserId(user.id);
+    try {
+      await mc.auth.adminAdjustCoins(user.id, { delta: signed, reason: "admin_panel" });
+      await loadAdminData(true);
+    } catch (e) {
+      alert(`Adjust coins failed: ${extractErrorMessage(e)}`);
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
+  const handleSetPremium = async (user, isPremium) => {
+    if (!user?.id) return;
+    if (!confirm(`${isPremium ? "Enable" : "Disable"} Premium for ${user.full_name}?`)) return;
+    setActionUserId(user.id);
+    try {
+      await mc.auth.adminSetPremium(user.id, { is_premium: !!isPremium, reason: "admin_panel" });
+      await loadAdminData(true);
+    } catch (e) {
+      alert(`Premium update failed: ${extractErrorMessage(e)}`);
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
+  const handleForceOnboarding = async (user) => {
+    if (!user?.id) return;
+    if (!confirm(`Force onboarding for ${user.full_name}? They will see onboarding again until completed.`)) return;
+    setActionUserId(user.id);
+    try {
+      await mc.auth.adminForceOnboarding(user.id);
+      await loadAdminData(true);
+      alert("Onboarding forced.");
+    } catch (e) {
+      alert(`Force onboarding failed: ${extractErrorMessage(e)}`);
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
+  const handleClearUserContent = async (user) => {
+    if (!user?.id) return;
+    if (!confirm(`Clear interests/matches/notifications for ${user.full_name}? This cannot be undone.`)) return;
+    setActionUserId(user.id);
+    try {
+      await mc.auth.adminClearUserContent(user.id);
+      await loadAdminData(true);
+      alert("User content cleared.");
+    } catch (e) {
+      alert(`Clear content failed: ${extractErrorMessage(e)}`);
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
+  const handleBulkClearContent = async () => {
+    if (!confirm("Clear ALL users' interests/matches/notifications and reset onboarding? This cannot be undone.")) return;
+    setIsReloading(true);
+    try {
+      await mc.auth.adminBulkClearContent();
+      await loadAdminData(true);
+      alert("Bulk clear complete.");
+    } catch (e) {
+      alert(`Bulk clear failed: ${extractErrorMessage(e)}`);
+    } finally {
+      setIsReloading(false);
     }
   };
 
@@ -555,7 +704,7 @@ export default function Admin() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm"
+                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-900"
               >
                 <option value="all">All roles</option>
                 <option value="user">Users</option>
@@ -564,7 +713,7 @@ export default function Admin() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm"
+                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-900"
               >
                 <option value="all">All statuses</option>
                 <option value="active">Active</option>
@@ -579,12 +728,13 @@ export default function Admin() {
             )}
 
             <div className="overflow-auto rounded-2xl border border-gray-200">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+              <table className="w-full text-sm text-gray-900">
+                <thead className="bg-gray-50 text-gray-600">
                   <tr>
                     <th className="text-left p-3">User</th>
                     <th className="text-left p-3">Role</th>
                     <th className="text-left p-3">Status</th>
+                    <th className="text-left p-3">Coins</th>
                     <th className="text-left p-3">Engagement</th>
                     <th className="text-left p-3">Actions</th>
                   </tr>
@@ -603,7 +753,7 @@ export default function Admin() {
                             value={row.role}
                             onChange={(e) => handleRoleChange(row.id, e.target.value)}
                             disabled={actionUserId === row.id}
-                            className="px-2 py-1 rounded border border-gray-300"
+                            className="px-2 py-1 rounded border border-gray-300 bg-white text-gray-900"
                           >
                             <option value="user">user</option>
                             <option value="admin">admin</option>
@@ -625,6 +775,12 @@ export default function Admin() {
                           </div>
                         </div>
                       </td>
+                      <td className="p-3 text-sm font-semibold text-gray-900">
+                        <div className="inline-flex items-center gap-2">
+                          <Coins className="w-4 h-4 text-amber-500" />
+                          {row.coins}
+                        </div>
+                      </td>
                       <td className="p-3 text-xs text-gray-700">
                         <div>Interests: {row.interests}</div>
                         <div>Messages: {row.messages}</div>
@@ -633,21 +789,30 @@ export default function Admin() {
                       <td className="p-3">
                         <div className="flex flex-col gap-2">
                           <Link to={`${createPageUrl("UserProfile")}?userId=${row.id}`}>
-                            <Button variant="outline" size="sm" className="w-full">Open Profile</Button>
+                            <Button variant="outline" size="sm" className={`w-full ${ADMIN_OUTLINE_BUTTON}`}>Open Profile</Button>
                           </Link>
                           <Link to={`${createPageUrl("Messages")}?userId=${row.id}`}>
-                            <Button variant="outline" size="sm" className="w-full">
+                            <Button variant="outline" size="sm" className={`w-full ${ADMIN_OUTLINE_BUTTON}`}>
                               <MessageCircle className="w-3 h-3 mr-1" />
                               Message
                             </Button>
                           </Link>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={actionUserId === row.id}
+                            onClick={() => setManageUser(row)}
+                            className={`w-full ${ADMIN_OUTLINE_BUTTON}`}
+                          >
+                            Manage
+                          </Button>
                           {canManageAccounts && (
                             <Button
                               variant="outline"
                               size="sm"
                               disabled={actionUserId === row.id}
                               onClick={() => handleToggleDisabled(row)}
-                              className="w-full"
+                              className={`w-full ${ADMIN_OUTLINE_BUTTON}`}
                             >
                               {row.disabled ? "Enable" : "Disable"}
                             </Button>
@@ -658,7 +823,7 @@ export default function Admin() {
                               size="sm"
                               disabled={actionUserId === row.id}
                               onClick={() => handleAssumeUser(row)}
-                              className="w-full"
+                              className={`w-full ${ADMIN_OUTLINE_BUTTON}`}
                             >
                               <LogIn className="w-3 h-3 mr-1" />
                               Open as user
@@ -701,7 +866,7 @@ export default function Admin() {
               <select
                 value={inviteState.role}
                 onChange={(e) => setInviteState((prev) => ({ ...prev, role: e.target.value }))}
-                className="w-full px-3 py-2 rounded-md border border-gray-300 bg-white text-sm"
+                className="w-full px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-900"
               >
                 <option value="user">user</option>
                 <option value="admin">admin</option>
@@ -717,9 +882,9 @@ export default function Admin() {
                 value={bulkInvites}
                 onChange={(e) => setBulkInvites(e.target.value)}
                 placeholder={"first@email.com\nsecond@email.com"}
-                className="w-full h-24 rounded-md border border-gray-300 p-2 text-sm"
+                className="w-full h-24 rounded-md border border-gray-300 p-2 text-sm text-gray-900 placeholder:text-gray-400"
               />
-              <Button onClick={handleBulkInvite} disabled={inviting} variant="outline" className="w-full mt-2">
+              <Button onClick={handleBulkInvite} disabled={inviting} variant="outline" className={`w-full mt-2 ${ADMIN_OUTLINE_BUTTON}`}>
                 Send bulk invites
               </Button>
             </div>
@@ -761,7 +926,7 @@ export default function Admin() {
                 value={importPayload}
                 onChange={(e) => setImportPayload(e.target.value)}
                 placeholder='{"users":[{"email":"andy@example.com","full_name":"Andy Bain","is_premium":true,"interests":[{"category":"cultural_taste","title":"Music"}]}]}'
-                className="w-full h-40 rounded-md border border-gray-300 p-2 text-xs font-mono"
+                className="w-full h-40 rounded-md border border-gray-300 p-2 text-xs font-mono text-gray-900 placeholder:text-gray-400"
               />
               <div className="flex gap-2">
                 <Button
@@ -775,7 +940,7 @@ export default function Admin() {
                   type="button"
                   variant="outline"
                   onClick={() => setImportPayload("")}
-                  className="flex-1"
+                  className={`flex-1 ${ADMIN_OUTLINE_BUTTON}`}
                 >
                   Clear
                 </Button>
@@ -792,9 +957,240 @@ export default function Admin() {
                 </div>
               )}
             </div>
+
+            <div className="pt-2 border-t border-gray-100 space-y-2">
+              <p className="text-sm font-semibold text-gray-800">System Tools</p>
+              <Button
+                variant="destructive"
+                onClick={handleBulkClearContent}
+                disabled={isReloading}
+                className="w-full bg-red-600 text-white hover:bg-red-700 border border-red-700 shadow-sm"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Bulk clear content
+              </Button>
+              <p className="text-xs text-gray-500">
+                Clears interests/matches/notifications for all users and resets onboarding (admins excluded).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 shadow-2xl">
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-indigo-500" />
+                Logs & Events
+              </h2>
+              <p className="text-sm text-gray-600">Operational visibility for debugging and moderation.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={logsTab}
+                onChange={(e) => setLogsTab(e.target.value)}
+                className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-900"
+              >
+                <option value="app">App logs</option>
+                <option value="activity">Activity logs</option>
+                <option value="pwdreset">Password resets</option>
+              </select>
+              <Button variant="outline" onClick={refreshLogs} disabled={logsLoading} className={ADMIN_OUTLINE_BUTTON}>
+                {logsLoading ? "Loading..." : "Refresh logs"}
+              </Button>
+              <Button variant="outline" onClick={refreshEvents} disabled={eventsLoading} className={ADMIN_OUTLINE_BUTTON}>
+                {eventsLoading ? "Loading..." : "Refresh events"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 bg-gray-50 text-sm font-semibold text-gray-800">Logs ({logsTab})</div>
+              <div className="max-h-80 overflow-auto">
+                {logsItems.length === 0 ? (
+                  <div className="p-4 text-sm text-gray-500">No log entries.</div>
+                ) : (
+                  logsItems.map((item) => (
+                    <div key={item.id} className="border-t border-gray-100 px-4 py-3 text-xs text-gray-700">
+                      <div className="font-semibold text-gray-900">{item.type || item.page || "log"}</div>
+                      <div className="text-gray-500">{item.created_date}</div>
+                      {(item.user_id || item.actor_user_id || item.target_user_id) && (
+                        <div className="text-gray-600">
+                          user: {item.user_id || item.actor_user_id}{item.target_user_id ? ` -> ${item.target_user_id}` : ""}
+                        </div>
+                      )}
+                      {item.key && <div className="text-gray-600 break-all">{item.key}</div>}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 bg-gray-50 text-sm font-semibold text-gray-800">Event stream</div>
+              <div className="max-h-80 overflow-auto">
+                {eventsItems.length === 0 ? (
+                  <div className="p-4 text-sm text-gray-500">No events.</div>
+                ) : (
+                  eventsItems
+                    .slice()
+                    .reverse()
+                    .map((evt) => (
+                      <div key={`${evt.seq}-${evt.entity}-${evt.id}`} className="border-t border-gray-100 px-4 py-3 text-xs text-gray-700">
+                        <div className="font-semibold text-gray-900">
+                          [{evt.entity}] {evt.type} {evt.id}
+                        </div>
+                        <div className="text-gray-500">{evt.ts} (seq {evt.seq})</div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {manageUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setManageUser(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              className="w-full max-w-xl bg-white rounded-3xl shadow-2xl p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{manageUser.full_name}</h3>
+                  <p className="text-sm text-gray-600">{manageUser.email}</p>
+                  <p className="text-xs text-gray-500 break-all">id: {manageUser.id}</p>
+                </div>
+                <Button variant="outline" onClick={() => setManageUser(null)} className={ADMIN_OUTLINE_BUTTON}>
+                  Close
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-amber-500" />
+                    Premium
+                  </p>
+                  <div className="text-sm text-gray-700 mb-3">Current: {manageUser.is_premium ? "Enabled" : "Disabled"}</div>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1"
+                      onClick={() => handleSetPremium(manageUser, true)}
+                      disabled={actionUserId === manageUser.id}
+                    >
+                      Enable
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleSetPremium(manageUser, false)}
+                      disabled={actionUserId === manageUser.id}
+                      className={`flex-1 ${ADMIN_OUTLINE_BUTTON}`}
+                    >
+                      Disable
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <Coins className="w-4 h-4 text-amber-500" />
+                    Coins
+                  </p>
+                  <div className="text-sm text-gray-700 mb-3">Current: {manageUser.coins}</div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={coinsDelta}
+                      onChange={(e) => setCoinsDelta(clampInt(e.target.value, 0))}
+                      className="flex-1"
+                      placeholder="50"
+                    />
+                    <Button
+                      onClick={() => handleAdjustCoins(manageUser, Math.abs(clampInt(coinsDelta, 0)))}
+                      disabled={actionUserId === manageUser.id}
+                    >
+                      +Add
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleAdjustCoins(manageUser, -Math.abs(clampInt(coinsDelta, 0)))}
+                      disabled={actionUserId === manageUser.id}
+                      className={ADMIN_OUTLINE_BUTTON}
+                    >
+                      -Remove
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 p-4 md:col-span-2">
+                  <p className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <KeyRound className="w-4 h-4 text-indigo-500" />
+                    Password reset
+                  </p>
+                  <div className="flex gap-2 flex-wrap items-center">
+                    <select
+                      value={passwordMode}
+                      onChange={(e) => setPasswordMode(e.target.value)}
+                      className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm text-gray-900"
+                    >
+                      <option value="welcome">Set welcome12345</option>
+                      <option value="random">Generate random</option>
+                    </select>
+                    <Button
+                      onClick={() => handleResetPassword(manageUser)}
+                      disabled={actionUserId === manageUser.id}
+                      className="bg-gradient-to-r from-indigo-500 to-purple-600"
+                    >
+                      <Wand2 className="w-4 h-4 mr-2" />
+                      Reset password
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Password reset invalidates existing sessions for this user.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-2">Onboarding</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleForceOnboarding(manageUser)}
+                    disabled={actionUserId === manageUser.id}
+                    className={`w-full ${ADMIN_OUTLINE_BUTTON}`}
+                  >
+                    Force onboarding
+                  </Button>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-2">Content reset</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleClearUserContent(manageUser)}
+                    disabled={actionUserId === manageUser.id}
+                    className={`w-full ${ADMIN_OUTLINE_BUTTON}`}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear user content
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Mail, Shield, User, Phone, CheckSquare, Apple } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createPageUrl } from "@/utils";
@@ -71,7 +71,7 @@ export default function Login() {
   const [localResetCode, setLocalResetCode] = React.useState("");
   const [forgotLoading, setForgotLoading] = React.useState(false);
 
-  const adminCreds = base44.getLocalAdminCredentials?.();
+  const adminCreds = mc.getLocalAdminCredentials?.();
 
   React.useEffect(() => {
     const hasSeenWelcome = getWelcomeSeen();
@@ -86,7 +86,7 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-      await base44.auth.loginViaEmailPassword(loginEmail, loginPassword);
+      await mc.auth.loginViaEmailPassword(loginEmail, loginPassword);
       const nextPath = normalizeNextPath(searchParams.get("next"));
       navigate(nextPath, { replace: true });
       window.location.reload();
@@ -124,7 +124,7 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-      await base44.auth.register({
+      await mc.auth.register({
         username: username.trim(),
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -156,7 +156,7 @@ export default function Login() {
         throw new Error(`Enter your email first to continue with ${providerName}`);
       }
 
-      const result = await base44.auth.loginWithProvider(providerName, {
+      const result = await mc.auth.loginWithProvider(providerName, {
         email: providerEmail.trim(),
         username: username.trim(),
         first_name: firstName.trim(),
@@ -186,7 +186,7 @@ export default function Login() {
 
     setForgotLoading(true);
     try {
-      const result = await base44.auth.resetPasswordRequest({ email: forgotEmail.trim() });
+      const result = await mc.auth.resetPasswordRequest({ email: forgotEmail.trim() });
       setForgotRequested(true);
       setLocalResetCode(result?.local_reset_code || "");
       setForgotNotice(result?.message || "Reset code was generated.");
@@ -216,7 +216,7 @@ export default function Login() {
 
     setForgotLoading(true);
     try {
-      await base44.auth.resetPassword({
+      await mc.auth.resetPassword({
         email: forgotEmail.trim(),
         code: forgotCode.trim(),
         newPassword: forgotNewPassword

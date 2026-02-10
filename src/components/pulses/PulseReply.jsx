@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { X, Send, User as UserIcon } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -15,13 +15,13 @@ export default function PulseReply({ pulse, pulseUser, currentUser, onClose }) {
 
     setSending(true);
     try {
-      await base44.entities.Message.create({
+      await mc.entities.Message.create({
         from_user_id: currentUser.id,
         to_user_id: pulse.user_id,
         text: `Re: "${pulse.text}"\n\n${message.trim()}`
       });
 
-      await base44.entities.Notification.create({
+      await mc.entities.Notification.create({
         type: "message",
         from_user_id: currentUser.id,
         to_user_id: pulse.user_id,

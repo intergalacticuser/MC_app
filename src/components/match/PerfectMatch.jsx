@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Heart, User as UserIcon, Crown, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 
 export default function PerfectMatch({ currentUser, allUsers, interests }) {
   const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ export default function PerfectMatch({ currentUser, allUsers, interests }) {
     try {
       // Get all necessary data
       const myInterests = interests.filter(i => i.user_id === currentUser.id);
-      const messages = await base44.entities.Message.list();
+      const messages = await mc.entities.Message.list();
       
       // Create user interests description for AI
       const myInterestsDesc = myInterests.map(i => ({
@@ -78,7 +78,7 @@ Return JSON with:
 - compatibility_factors: object with scores {interests: 0-100, mood: 0-100, values: 0-100, interaction: 0-100}
 - reason: detailed compatibility explanation in English (2-3 sentences, mention all factors)`;
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await mc.integrations.Core.InvokeLLM({
         prompt: prompt,
         response_json_schema: {
           type: "object",

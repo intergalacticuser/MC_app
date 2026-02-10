@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Zap } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 
 export default function SuperNovaButton({ currentUser, targetUser, onSuccess }) {
   const [sending, setSending] = React.useState(false);
@@ -15,19 +15,19 @@ export default function SuperNovaButton({ currentUser, targetUser, onSuccess }) 
     setSending(true);
     try {
       // Deduct coins
-      await base44.auth.updateMe({
+      await mc.auth.updateMe({
         coins: (currentUser.coins || 100) - 20
       });
 
       // Create super nova match
-      await base44.entities.Match.create({
+      await mc.entities.Match.create({
         from_user_id: currentUser.id,
         to_user_id: targetUser.id,
         is_super_nova: true
       });
 
       // Create premium notification
-      await base44.entities.Notification.create({
+      await mc.entities.Notification.create({
         type: "match",
         from_user_id: currentUser.id,
         to_user_id: targetUser.id,

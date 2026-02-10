@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { mc } from "@/api/mcClient";
 import { motion } from "framer-motion";
 import { X, Save, Wand2 } from "lucide-react";
 import { syncUserProfile } from "@/components/utils/syncProfile";
@@ -35,7 +35,7 @@ export default function ProfileEditor({ user, onClose, onSave }) {
     setGeneratingBio(true);
     try {
       const prompt = `Generate a short, creative, and engaging social media bio for a user named ${fullName || "User"}. Mood: ${mood || "Neutral"}. Maximum 150 characters. No hashtags.`;
-      const res = await base44.integrations.Core.InvokeLLM({ prompt });
+      const res = await mc.integrations.Core.InvokeLLM({ prompt });
       setBio(res.replace(/^"|"$/g, ''));
     } catch (e) {
       console.error(e);
@@ -47,7 +47,7 @@ export default function ProfileEditor({ user, onClose, onSave }) {
     setGeneratingQuote(true);
     try {
       const prompt = `Generate a short, inspiring life motto or quote. Mood: ${mood || 'Neutral'}. Maximum 100 characters.`;
-      const res = await base44.integrations.Core.InvokeLLM({ prompt });
+      const res = await mc.integrations.Core.InvokeLLM({ prompt });
       setQuote(res.replace(/^"|"$/g, ''));
     } catch (e) {
       console.error(e);
@@ -64,9 +64,9 @@ export default function ProfileEditor({ user, onClose, onSave }) {
 
     setSaving(true);
     const updateData = { full_name: safeFullName, bio, mood, quote };
-    await base44.auth.updateMe(updateData);
+    await mc.auth.updateMe(updateData);
     // Sync to public UserProfile entity so other users can see this profile
-    const updatedUser = await base44.auth.me();
+    const updatedUser = await mc.auth.me();
     await syncUserProfile(updatedUser).catch(() => {});
     await onSave();
     setSaving(false);
