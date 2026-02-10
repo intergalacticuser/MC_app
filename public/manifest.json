@@ -1,6 +1,6 @@
 {
-  "name": "MindCircle",
-  "short_name": "MindCircle",
+  "name": "Make a Match",
+  "short_name": "Make a Match",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B0C15",
@@ -14,4 +14,3 @@
     }
   ]
 }
-

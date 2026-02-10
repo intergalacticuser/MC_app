@@ -251,7 +251,7 @@ export default function Login() {
             <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-100 flex items-center justify-center mb-3">
               <Shield className="w-7 h-7 text-indigo-700" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">MindCircle</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Make a Match</h1>
             <p className="text-sm text-gray-600 mt-1">
               Sign in or create your account to continue.
             </p>

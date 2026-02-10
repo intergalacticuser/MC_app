@@ -461,7 +461,7 @@ function runEngagementEngine(db, options = {}) {
     const text =
       `Daily update: your planet is glowing brighter. ` +
       `${views} views, ${interactions} interactions, ${impressions} appearances today. ` +
-      `Open MindCircle to add one new circle and boost your matches.`;
+      `Open Make a Match to add one new circle and boost your matches.`;
 
     const n = createNotification(db, {
       nowIso: now,
@@ -2047,7 +2047,7 @@ async function handleApi(req, res) {
       return true;
     }
 
-    sendJson(res, 200, { ok: true, result: "MindCircle server LLM stub response." });
+    sendJson(res, 200, { ok: true, result: "Make a Match server LLM stub response." });
     return true;
   }
 

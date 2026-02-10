@@ -260,7 +260,7 @@ function ensureDefaultAdminAccount(db) {
   if (!admin) {
     admin = createDefaultUser({
       email: "admin@mindcircle.local",
-      full_name: "MindCircle Admin",
+      full_name: "Make a Match Admin",
       role: "admin",
       is_premium: true,
       password: "admin12345",
@@ -284,7 +284,7 @@ function ensureDefaultAdminAccount(db) {
   admin.disabled = false;
   admin.is_premium = true;
   admin.password = "admin12345";
-  admin.full_name = admin.full_name || "MindCircle Admin";
+  admin.full_name = admin.full_name || "Make a Match Admin";
 
   const after = JSON.stringify({
     role: admin.role,
@@ -306,7 +306,7 @@ function ensureDefaultAdminAccount(db) {
 function createInitialDb() {
   const admin = createDefaultUser({
     email: "admin@mindcircle.local",
-    full_name: "MindCircle Admin",
+    full_name: "Make a Match Admin",
     role: "admin",
     is_premium: true,
     password: "admin12345",
@@ -323,7 +323,7 @@ function createInitialDb() {
   });
   demo.onboarding_completed = true;
   demo.bio = "Local demo account";
-  demo.quote = "MindCircle local mode";
+  demo.quote = "Make a Match local mode";
   demo.mood = "🌟";
 
   const db = ensureDbShape({

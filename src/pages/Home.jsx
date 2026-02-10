@@ -83,7 +83,7 @@ export default function Home() {
           transition={{ delay: 0.3 }}
           className="text-6xl md:text-8xl font-bold text-white mb-6"
         >
-          MindCircle
+          <span className="whitespace-nowrap">Make a Match</span>
         </motion.h1>
 
         <motion.p

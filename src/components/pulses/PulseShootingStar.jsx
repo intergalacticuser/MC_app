@@ -93,12 +93,12 @@ export default function PulseShootingStar({ pulse, user, index, onReply }) {
               onClick={(e) => {
                 e.stopPropagation();
                 haptics.light();
-                const shareText = `Check out this pulse from ${user?.full_name}: "${pulse.text}" - MindCircle`;
+                const shareText = `Check out this pulse from ${user?.full_name}: "${pulse.text}" - Make a Match`;
                 const shareUrl = `${window.location.origin}${createPageUrl("UserProfile")}?userId=${pulse.user_id}`;
                 
                 if (navigator.share) {
                   navigator.share({
-                    title: 'MindCircle Pulse',
+                    title: 'Make a Match Pulse',
                     text: shareText,
                     url: shareUrl
                   }).catch(console.error);

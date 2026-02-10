@@ -177,7 +177,7 @@ export default function Layout({ children }) {
           if (!isOnboardingNudgeDismissed(user.id) && onboardingNudgeShownRef.current !== String(user.id || "")) {
             onboardingNudgeShownRef.current = String(user.id || "");
             toast({
-              title: "MindCircle",
+              title: "Make a Match",
               description: (
                 <div className="leading-snug">
                   Пройдите онбординг, чтобы ваш Planet правильно открывался другим и чтобы подбор совпадений стал точнее.
@@ -269,7 +269,7 @@ export default function Layout({ children }) {
         loadUser();
 
         if (document.hidden && Notification.permission === "granted" && event.data?.push_enabled !== false) {
-          new Notification("MindCircle", {
+          new Notification("Make a Match", {
             body: event.data.text,
             icon: "/icon-192.png",
             tag: "notification"
@@ -407,8 +407,8 @@ export default function Layout({ children }) {
               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                 <Compass className="w-6 h-6 text-white select-none" />
               </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                MindCircle
+              <span className="text-2xl font-bold whitespace-nowrap bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                Make a Match
               </span>
             </Link>
 

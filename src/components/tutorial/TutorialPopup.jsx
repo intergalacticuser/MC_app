@@ -13,7 +13,7 @@ export default function TutorialPopup({
 }) {
   const content = {
     welcome: {
-      title: "Welcome to MindCircle! 🌟",
+      title: "Welcome to Make a Match! 🌟",
       text: "This app allows you to easily and conveniently find users who match your interests. Let's get started!",
       button: "Let's go!",
       icon: <Sparkles className="w-12 h-12 text-purple-400" />

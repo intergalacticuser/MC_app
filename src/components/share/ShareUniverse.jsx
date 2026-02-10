@@ -10,7 +10,7 @@ export default function ShareUniverse({ user, interests, categories, onClose }) 
   const [generating, setGenerating] = React.useState(false);
 
   const shareUrl = `${window.location.origin}${createPageUrl("UserProfile")}?userId=${user.id}`;
-  const shareText = `Check out ${user.full_name}'s planet on MindCircle! 🪐`;
+  const shareText = `Check out ${user.full_name}'s planet on Make a Match! 🪐`;
 
   const handleNativeShare = async () => {
     setGenerating(true);
@@ -125,7 +125,7 @@ export default function ShareUniverse({ user, interests, categories, onClose }) 
 
             <div className="text-center">
               <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-xl px-3 py-1.5 rounded-full">
-                <span className="text-white font-bold text-xs">MindCircle</span>
+                <span className="text-white font-bold text-xs">Make a Match</span>
               </div>
             </div>
           </div>

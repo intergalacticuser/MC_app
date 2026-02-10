@@ -625,7 +625,7 @@ export default function Admin() {
               <ShieldCheck className="w-4 h-4 text-emerald-300" />
               <span className="text-sm text-emerald-200 font-semibold">Admin Control Center</span>
             </div>
-            <h1 className="text-4xl font-bold text-white">MindCircle Admin Panel</h1>
+            <h1 className="text-4xl font-bold text-white">Make a Match Admin Panel</h1>
             <p className="text-purple-200 mt-1">
               Signed in as {currentUser?.email}
             </p>

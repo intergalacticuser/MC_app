@@ -12,7 +12,7 @@ function cleanCoachText(value) {
   return text;
 }
 
-export function cosmicCoachToast({ title = "MindCircle", text = "", ms = 45000 } = {}) {
+export function cosmicCoachToast({ title = "Make a Match", text = "", ms = 45000 } = {}) {
   const safeText = cleanCoachText(text);
   if (!safeText) return;
 

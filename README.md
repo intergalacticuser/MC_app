@@ -1,4 +1,4 @@
-# MindCircle (Local-First)
+# Make a Match (Local-First)
 
 This project runs fully local-first and does not depend on any third-party backend services.
 

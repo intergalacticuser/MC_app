@@ -61,7 +61,7 @@ export default function CategoryEditor({ category, interests, userId, onClose, o
         }
       });
       if (typeof res === "string" && res.trim()) {
-        cosmicCoachToast({ title: "MindCircle", text: res.trim(), coach_user_id: coachUserId, coach_dismiss_key: safeKey });
+        cosmicCoachToast({ title: "Make a Match", text: res.trim(), coach_user_id: coachUserId, coach_dismiss_key: safeKey });
       }
     } catch {
       // Coach should never block the core UX.

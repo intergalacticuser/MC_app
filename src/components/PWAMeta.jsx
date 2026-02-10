@@ -4,8 +4,8 @@ export default function PWAMeta() {
   useEffect(() => {
     // 1. Manifest (Data URI) - Solves missing manifest.json
     const manifest = {
-      short_name: "MindCircle",
-      name: "MindCircle: My Planet",
+      short_name: "Make a Match",
+      name: "Make a Match: My Planet",
       icons: [
         {
           src: "https://images.unsplash.com/photo-1614730341194-75c60740a071?w=192&h=192&fit=crop&q=80",
@@ -62,7 +62,7 @@ export default function PWAMeta() {
     const metaTags = [
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "apple-mobile-web-app-title", content: "MindCircle" },
+      { name: "apple-mobile-web-app-title", content: "Make a Match" },
       { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover, interactive-widget=resizes-content" }
     ];
 

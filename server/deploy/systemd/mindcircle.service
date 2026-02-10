@@ -1,5 +1,5 @@
 [Unit]
-Description=MindCircle Server
+Description=Make a Match Server
 After=network.target
 
 [Service]
@@ -16,4 +16,3 @@ PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target
-

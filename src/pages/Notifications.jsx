@@ -164,7 +164,7 @@ export default function Notifications() {
             {notifications.map((notification, index) => {
               const systemUser = {
                 id: "system",
-                full_name: "MindCircle",
+                full_name: "Make a Match",
                 profile_photo: "/icon-192.png",
                 onboarding_completed: true
               };

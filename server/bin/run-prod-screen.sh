@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Starts MindCircle in a detached screen session named "mindcircle".
+# Starts Make a Match in a detached screen session named "mindcircle".
 # Logs to ./data/mindcircle-server.log
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -25,4 +25,3 @@ screen -dmS "$SESSION_NAME" bash -lc \
   'set -euo pipefail; umask 022; ./server/bin/run-prod.sh 2>&1 | tee -a "'"$LOG_FILE"'"'
 
 echo "OK. Attach with: screen -r $SESSION_NAME"
-

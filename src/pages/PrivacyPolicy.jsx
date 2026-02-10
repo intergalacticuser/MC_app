@@ -22,7 +22,7 @@ export default function PrivacyPolicy() {
             <section>
               <h2 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">1. Introduction</h2>
               <p>
-                Welcome to MindCircle ("we," "our," or "us"). We are committed to protecting your privacy and ensuring you have a positive experience on our website and in using our services. This policy outlines our handling practices and how we collect and use the Personal Data you provide during your interactions with us.
+                Welcome to Make a Match ("we," "our," or "us"). We are committed to protecting your privacy and ensuring you have a positive experience on our website and in using our services. This policy outlines our handling practices and how we collect and use the Personal Data you provide during your interactions with us.
               </p>
             </section>
 
@@ -68,7 +68,7 @@ export default function PrivacyPolicy() {
             <section>
               <h2 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">6. Prohibited Content & Conduct</h2>
               <p>
-                To maintain a safe, respectful, and positive environment, the following are strictly prohibited on MindCircle:
+                To maintain a safe, respectful, and positive environment, the following are strictly prohibited on Make a Match:
               </p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
                 <li><strong>Aggressive or Hateful Content:</strong> Images or text that promote violence, hate speech, harassment, or bullying.</li>

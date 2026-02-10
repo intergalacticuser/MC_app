@@ -51,7 +51,7 @@ node -e 'process.exit(Number(process.versions.node.split(".")[0])>=18?0:1)' || {
   exit 1
 }
 
-echo "Starting MindCircle server..."
+echo "Starting Make a Match server..."
 echo "  HOST=$HOST"
 echo "  PORT=$PORT"
 echo "  DATA_DIR=$DATA_DIR"
@@ -61,4 +61,3 @@ echo "  OLLAMA_MODEL=$OLLAMA_MODEL"
 echo "  OLLAMA_TIMEOUT_MS=$OLLAMA_TIMEOUT_MS"
 
 exec node server/index.mjs
-

@@ -119,7 +119,7 @@ export default function CategoryEditorV3({
         options: { temperature: 0.9, top_p: 0.9 }
       });
       if (typeof res === "string" && res.trim()) {
-        cosmicCoachToast({ title: "MindCircle", text: res.trim(), coach_user_id: coachUserId, coach_dismiss_key: safeKey });
+        cosmicCoachToast({ title: "Make a Match", text: res.trim(), coach_user_id: coachUserId, coach_dismiss_key: safeKey });
       }
     } catch {
       // ignore

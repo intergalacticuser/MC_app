@@ -237,7 +237,7 @@ export function ensureDefaultAdminAccount(db) {
   if (!admin) {
     admin = createDefaultUser({
       email: adminEmail,
-      full_name: "MindCircle Admin",
+      full_name: "Make a Match Admin",
       role: "admin",
       coins: 500,
       welcomed: true,

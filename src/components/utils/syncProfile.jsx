@@ -6,7 +6,7 @@ import { mc } from "@/api/mcClient";
  * 
  * IMPORTANT: Each user must create their own UserProfile record so that
  * created_by matches their own email. Otherwise other users won't see it
- * due to MindCircle's visibility rules (profiles are public but ownership metadata must be correct).
+ * due to Make a Match visibility rules (profiles are public but ownership metadata must be correct).
  */
 export async function syncUserProfile(user) {
   if (!user || !user.id) return;
