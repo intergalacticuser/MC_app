@@ -18,6 +18,12 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
+function isLoopbackHost() {
+  if (typeof window === "undefined") return true;
+  const host = String(window.location?.hostname || "").toLowerCase();
+  return host === "localhost" || host === "127.0.0.1" || host === "::1";
+}
+
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated } = useAuth();
 
@@ -38,11 +44,21 @@ const AuthenticatedApp = () => {
   }
 
   if (!isAuthenticated) {
+    const showPublicLanding = isLoopbackHost() && Pages.Home;
     return (
       <Routes>
-        {/* Public landing (no auth required) */}
-        {Pages.Home && <Route path="/" element={<Pages.Home />} />}
-        {Pages.Home && <Route path="/Home" element={<Pages.Home />} />}
+        {/* In production (remote) default to the auth screen on first visit. */}
+        {showPublicLanding ? (
+          <>
+            <Route path="/" element={<Pages.Home />} />
+            <Route path="/Home" element={<Pages.Home />} />
+          </>
+        ) : (
+          <>
+            {LoginPage && <Route path="/" element={<LoginPage />} />}
+            {Pages.Home && <Route path="/Home" element={<Navigate to="/Login" replace />} />}
+          </>
+        )}
         {LoginPage && <Route path="/Login" element={<LoginPage />} />}
         {PrivacyPolicyPage && <Route path="/PrivacyPolicy" element={<PrivacyPolicyPage />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
