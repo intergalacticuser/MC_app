@@ -249,23 +249,8 @@ export default function MindMapView({
         </div>
       )}
 
-      {/* Outer silhouette behind the planet. This is a full circle (not a shadow) so it reads on all sides. */}
+      {/* Keep only the planet + background; remove the extra silhouette/underlay layer behind the circle. */}
       <div className="relative isolate rounded-full p-1" style={{ boxShadow: `0 0 100px ${activeTheme.planetGlow}` }}>
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 rounded-full pointer-events-none"
-          style={{
-            transform: "scale(1.22)",
-            transformOrigin: "center",
-            background:
-              "radial-gradient(circle at 35% 30%, rgba(255,255,255,0.06) 0%, rgba(0,0,0,0.45) 48%, rgba(0,0,0,0.72) 100%)",
-            boxShadow:
-              "0 70px 140px rgba(0,0,0,0.55), 0 25px 60px rgba(0,0,0,0.35)",
-            filter: "blur(0.2px)",
-            opacity: 0.95,
-            zIndex: 0
-          }}
-        />
         <LayoutGroup id="mindmap">
         <motion.div
           ref={planetRef}

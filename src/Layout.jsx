@@ -363,6 +363,30 @@ export default function Layout({ children }) {
           overflow-x: hidden;
         }
 
+        .brandmark-3d {
+          /* Outline + layered shadow to read like 3D/extruded text on both light and dark nav bars. */
+          -webkit-text-stroke: 1.25px rgba(255, 255, 255, 0.70);
+          text-shadow:
+            0 1px 0 rgba(0, 0, 0, 0.06),
+            0 2px 0 rgba(0, 0, 0, 0.10),
+            0 3px 0 rgba(0, 0, 0, 0.12),
+            0 10px 22px rgba(0, 0, 0, 0.28);
+        }
+
+        .dark .brandmark-3d {
+          -webkit-text-stroke-color: rgba(0, 0, 0, 0.55);
+          text-shadow:
+            0 1px 0 rgba(0, 0, 0, 0.16),
+            0 2px 0 rgba(0, 0, 0, 0.20),
+            0 3px 0 rgba(0, 0, 0, 0.24),
+            0 12px 24px rgba(0, 0, 0, 0.42);
+        }
+
+        .brandmark-a {
+          /* Make "Make a Match" read tighter around the "a". */
+          margin: 0 0.18em;
+        }
+
         button, nav, a, img, .select-none {
           -webkit-user-select: none;
           user-select: none;
@@ -407,8 +431,10 @@ export default function Layout({ children }) {
               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                 <Compass className="w-6 h-6 text-white select-none" />
               </div>
-              <span className="text-2xl font-bold whitespace-nowrap bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                Make a Match
+              <span className="brandmark-3d text-2xl font-extrabold leading-none whitespace-nowrap bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                <span>Make</span>
+                <span className="brandmark-a">a</span>
+                <span>Match</span>
               </span>
             </Link>
 
