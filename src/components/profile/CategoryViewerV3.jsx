@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { ArrowLeft, X } from "lucide-react";
 import { CATEGORY_SUGGESTIONS as FIXED_SUBCATEGORIES } from "./categorySuggestionsData";
@@ -10,6 +11,11 @@ function getSortKey(interest) {
   const ts = Date.parse(String(interest?.created_date || ""));
   if (Number.isFinite(ts)) return ts;
   return 0;
+}
+
+function portal(node) {
+  if (typeof document === "undefined") return node;
+  return createPortal(node, document.body);
 }
 
 export default function CategoryViewerV3({ category, interests, onClose }) {
@@ -49,12 +55,12 @@ export default function CategoryViewerV3({ category, interests, onClose }) {
     setView("concepts");
   };
 
-  return (
+  return portal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-4"
       onClick={onClose}
     >
         <motion.div

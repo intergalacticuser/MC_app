@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { mc } from "@/api/mcClient";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { ArrowLeft, Camera, Edit2, Plus, Trash2, X } from "lucide-react";
@@ -30,6 +31,11 @@ function getSortKey(interest) {
   const ts = Date.parse(String(interest?.created_date || ""));
   if (Number.isFinite(ts)) return ts;
   return 0;
+}
+
+function portal(node) {
+  if (typeof document === "undefined") return node;
+  return createPortal(node, document.body);
 }
 
 export default function CategoryEditorV3({
@@ -356,13 +362,13 @@ export default function CategoryEditorV3({
     }
   };
 
-  return (
+  return portal(
     <>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
@@ -614,7 +620,7 @@ export default function CategoryEditorV3({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[230] flex items-center justify-center p-4"
             onClick={() => setEditingInterest(null)}
           >
             <motion.div
@@ -664,7 +670,7 @@ export default function CategoryEditorV3({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[220] flex items-center justify-center p-4"
             onClick={resetWizard}
           >
             <motion.div

@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { mc } from "@/api/mcClient";
 import { AnimatePresence, motion } from "framer-motion";
 import { Camera, X } from "lucide-react";
@@ -14,6 +15,11 @@ function toSafeText(value) {
 
 function uniq(arr) {
   return Array.from(new Set((arr || []).filter(Boolean)));
+}
+
+function portal(node) {
+  if (typeof document === "undefined") return node;
+  return createPortal(node, document.body);
 }
 
 export default function SubcategoryCoverWizard({
@@ -114,13 +120,13 @@ export default function SubcategoryCoverWizard({
     setUploading(false);
   };
 
-  return (
+  return portal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md z-[220] flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div

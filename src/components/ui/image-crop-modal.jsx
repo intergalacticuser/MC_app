@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 
@@ -19,6 +20,11 @@ function fileToObjectUrl(file) {
 
 function toJpegFile(blob, filename = "photo.jpg") {
   return new File([blob], filename, { type: "image/jpeg" });
+}
+
+function portal(node) {
+  if (typeof document === "undefined") return node;
+  return createPortal(node, document.body);
 }
 
 export default function ImageCropModal({
@@ -149,23 +155,24 @@ export default function ImageCropModal({
   };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-[80] flex items-center justify-center p-4"
-          onClick={onCancel}
-        >
+    portal(
+      <AnimatePresence>
+        {open && (
           <motion.div
-            initial={{ scale: 0.96, opacity: 0, y: 10 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.96, opacity: 0, y: 10 }}
-            transition={{ type: "spring", stiffness: 220, damping: 20 }}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-gray-900 rounded-3xl p-5 md:p-7 max-w-lg w-full shadow-2xl border border-white/10 relative"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[240] flex items-center justify-center p-4"
+            onClick={onCancel}
           >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0, y: 10 }}
+              transition={{ type: "spring", stiffness: 220, damping: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-gray-900 rounded-3xl p-5 md:p-7 max-w-lg w-full shadow-2xl border border-white/10 relative"
+            >
             <button
               type="button"
               onClick={onCancel}
@@ -241,10 +248,10 @@ export default function ImageCropModal({
                 Use photo
               </Button>
             </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        )}
+      </AnimatePresence>
+    )
   );
 }
-
