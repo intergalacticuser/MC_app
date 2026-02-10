@@ -16,7 +16,6 @@ import { CATEGORIES_LIST, calculateMatchScore, isProfileDiscoverable } from "@/c
 import { createPageUrl } from "@/utils";
 import { canRunNewUserTutorial } from "@/lib/onboarding-utils";
 import ImageCropModal from "@/components/ui/image-crop-modal";
-import SpaceBackdrop from "@/components/SpaceBackdrop";
 
 const FIXED_CATEGORIES = CATEGORIES_LIST;
 
@@ -174,8 +173,6 @@ export default function MyProfile() {
     );
   }
 
-  const activeThemeId = user?.is_premium ? (user?.premium_theme || "default") : "default";
-
   return (
     <div className="min-h-screen py-8 px-2 md:px-4 relative">
        {/* Background Glow */}
@@ -256,65 +253,29 @@ export default function MyProfile() {
         )}
 
         {/* Mind Map */}
-        <div className="relative isolate">
-          {/* Side "space" panels (animated) */}
-          <div className="pointer-events-none absolute inset-y-[-90px] left-0 right-0 z-0">
-            <div
-              className="hidden lg:block absolute inset-y-0 left-0 w-[26vw] max-w-[520px] opacity-85"
-              style={{
-                maskImage: "linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 72%, rgba(0,0,0,0) 100%)",
-                WebkitMaskImage: "linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 72%, rgba(0,0,0,0) 100%)",
-                maskRepeat: "no-repeat",
-                WebkitMaskRepeat: "no-repeat",
-                maskSize: "100% 100%",
-                WebkitMaskSize: "100% 100%"
-              }}
-            >
-              <div className="relative w-full h-full overflow-hidden">
-                <SpaceBackdrop density="page" themeId={activeThemeId} />
-              </div>
-            </div>
-            <div
-              className="hidden lg:block absolute inset-y-0 right-0 w-[26vw] max-w-[520px] opacity-85"
-              style={{
-                maskImage: "linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 72%, rgba(0,0,0,0) 100%)",
-                WebkitMaskImage: "linear-gradient(to left, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 72%, rgba(0,0,0,0) 100%)",
-                maskRepeat: "no-repeat",
-                WebkitMaskRepeat: "no-repeat",
-                maskSize: "100% 100%",
-                WebkitMaskSize: "100% 100%"
-              }}
-            >
-              <div className="relative w-full h-full overflow-hidden">
-                <SpaceBackdrop density="page" themeId={activeThemeId} />
-              </div>
-            </div>
-          </div>
-
-          <div className="relative z-10">
-            <MindMapView
-              user={user}
-              interests={interests}
-              categories={FIXED_CATEGORIES}
-              enableDrilldown
-              onInterestsChanged={loadData}
-              onCategoryClick={async (cat) => {
-                const isGuidedCategory = cat.id === FIXED_CATEGORIES[0]?.id;
-                if (user?.tutorial_v2_step === "category_highlight" && isGuidedCategory) {
-                  try {
-                    await mc.auth.updateMe({ tutorial_v2_step: "category_center_photo" });
-                    setUser((prev) => (prev ? { ...prev, tutorial_v2_step: "category_center_photo" } : prev));
-                  } catch {
-                    // ignore
-                  }
+        <div className="relative z-10">
+          <MindMapView
+            user={user}
+            interests={interests}
+            categories={FIXED_CATEGORIES}
+            enableDrilldown
+            onInterestsChanged={loadData}
+            onCategoryClick={async (cat) => {
+              const isGuidedCategory = cat.id === FIXED_CATEGORIES[0]?.id;
+              if (user?.tutorial_v2_step === "category_highlight" && isGuidedCategory) {
+                try {
+                  await mc.auth.updateMe({ tutorial_v2_step: "category_center_photo" });
+                  setUser((prev) => (prev ? { ...prev, tutorial_v2_step: "category_center_photo" } : prev));
+                } catch {
+                  // ignore
                 }
-                setHighlightCategory(null);
-              }}
-              onPhotoUpload={handleProfilePhotoUpload}
-              uploadingPhoto={uploadingPhoto}
-              categoryRefs={categoryRefs}
-            />
-          </div>
+              }
+              setHighlightCategory(null);
+            }}
+            onPhotoUpload={handleProfilePhotoUpload}
+            uploadingPhoto={uploadingPhoto}
+            categoryRefs={categoryRefs}
+          />
         </div>
 
         <ImageCropModal

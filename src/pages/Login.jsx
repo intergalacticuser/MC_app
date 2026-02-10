@@ -565,12 +565,7 @@ export default function Login() {
             </form>
           )}
 
-          <div className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
-            <p className="font-semibold mb-1">Local access</p>
-            {adminCreds && <p>Admin: {adminCreds.email} / {adminCreds.password}</p>}
-            <p>Demo: demo@mindcircle.local / demo12345</p>
-            <p>Invite password: welcome12345</p>
-          </div>
+          {/* Local demo credentials are not shown in production. */}
         </motion.div>
       </div>
 
