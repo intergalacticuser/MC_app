@@ -221,7 +221,7 @@ async function callOllamaChat({ baseUrl, model, messages, format, options, timeo
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: String(model || "").trim() || "llama3.2:3b-instruct-q4_K_M",
+        model: String(model || "").trim() || "gemma3:4b",
         stream: false,
         messages: normalizeOllamaMessages(messages),
         ...(format ? { format } : {}),
@@ -1785,7 +1785,8 @@ async function handleApi(req, res) {
     if (provider === "ollama") {
       try {
         const baseUrl = String(process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").trim();
-        const model = String(payload?.model || process.env.OLLAMA_MODEL || "llama3.2:3b-instruct-q4_K_M").trim();
+        // Enforce server-side model choice via ENV (do not allow client overrides).
+        const model = String(process.env.OLLAMA_MODEL || "gemma3:4b").trim();
         const timeoutMs = Number(process.env.OLLAMA_TIMEOUT_MS || 30000);
 
         if (wantsJson) {
@@ -1858,7 +1859,7 @@ async function handleApi(req, res) {
 
     const provider = String(process.env.MC_LLM_PROVIDER || process.env.MC_LLM_MODE || "stub").trim().toLowerCase();
     const baseUrl = String(process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").trim();
-    const model = String(process.env.OLLAMA_MODEL || "llama3.2:3b-instruct-q4_K_M").trim();
+    const model = String(process.env.OLLAMA_MODEL || "gemma3:4b").trim();
 
     if (provider !== "ollama") {
       sendJson(res, 200, { ok: true, provider, healthy: true, note: "LLM provider is not ollama." });
