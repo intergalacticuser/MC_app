@@ -44,6 +44,22 @@ After pushing to GitHub:
 3. Push to `main` (or run workflow manually).
 4. App URL will be: `https://intergalacticuser.github.io/MC_app/`
 
+## VPS Deployment (Recommended for shared server DB)
+
+Use the built-in Node production server:
+- serves `dist/`
+- exposes shared DB endpoint `/__mindcircle/local-db`
+- persists DB file on server (`data/mindcircle-shared-db.json`)
+
+Local commands before deploy:
+1. `npm run build`
+2. `npm run start:prod`
+
+Production environment variables:
+- `PORT` (default `80`)
+- `HOST` (default `0.0.0.0`)
+- `DATA_DIR` (default `./data`)
+
 ## Local data storage
 
 - App data is stored in browser `localStorage`.

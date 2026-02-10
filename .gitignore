@@ -19,6 +19,7 @@ dist-ssr
 
 # local app state
 .mindcircle-shared-db.json
+data/
 
 # editor files
 .vscode/*
